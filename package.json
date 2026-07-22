@@ -1,0 +1,23 @@
+{
+  "name": "local-blablacar",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "webapp",
+    "packages/contracts"
+  ],
+  "scripts": {
+    "dev:backend": "bun run --cwd backend dev",
+    "dev:webapp": "bun run --cwd webapp dev",
+    "tunnel": "bun run --cwd webapp tunnel",
+    "deploy:webapp": "bun run --cwd webapp deploy",
+    "prisma:migrate": "bun run --cwd backend prisma:migrate",
+    "prisma:deploy": "bun run --cwd backend prisma:deploy",
+    "prisma:seed": "bun run --cwd backend prisma:seed",
+    "typecheck": "bun run --filter='*' typecheck",
+    "build": "bun run --filter='*' build"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}

@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Location {
+  id       Int    @id @default(autoincrement())
+  name     String
+  district String?
+
+  ridesFrom Ride[] @relation("RideFrom")
+  ridesTo   Ride[] @relation("RideTo")
+}
+
+model User {
+  // Kept as String, not Int/Int64: VK's own guidance (LongID migration)
+  // is to move ids to Int64 range, which is unsafe in a JS `number`.
+  id           String    @id
+  firstName    String
+  lastName     String
+  photoUrl     String?
+  lastPlatform String?   // last-seen vk_platform value, for basic analytics
+  createdAt    DateTime  @default(now())
+
+  ridesGiven Ride[]    @relation("DriverRides")
+  bookings   Booking[] @relation("PassengerBookings")
+}
+
+enum RideStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Ride {
+  id             Int        @id @default(autoincrement())
+  driverId       String
+  fromId         Int
+  toId           Int
+  departureTime  DateTime   // stored as UTC
+  seatsAvailable Int
+  price          Int
+  status         RideStatus @default(ACTIVE)
+  createdAt      DateTime   @default(now())
+
+  driver   User      @relation("DriverRides", fields: [driverId], references: [id])
+  from     Location  @relation("RideFrom", fields: [fromId], references: [id])
+  to       Location  @relation("RideTo", fields: [toId], references: [id])
+  bookings Booking[]
+
+  @@index([status, fromId, toId, departureTime])
+  @@index([driverId])
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Booking {
+  id          Int           @id @default(autoincrement())
+  rideId      Int
+  passengerId String
+  seatsBooked Int           @default(1)
+  status      BookingStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+
+  ride      Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  passenger User @relation("PassengerBookings", fields: [passengerId], references: [id])
+
+  @@index([rideId])
+  @@index([passengerId])
+}

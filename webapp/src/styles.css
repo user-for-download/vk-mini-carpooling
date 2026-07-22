@@ -1,0 +1,138 @@
+/* ============================================
+   Local BlaBlaCar — VKUI Color Tokens
+   ============================================ */
+
+:root {
+  /* VKUI Color Tokens */
+  --vkui-color-background-primary: #ffffff;
+  --vkui-color-background-secondary: #f2f3f5;
+  --vkui-color-background-tertiary: #e7e8ec;
+  --vkui-color-background-accent: #5181b8;
+  --vkui-color-background-positive: #4bb34b;
+  --vkui-color-background-negative: #e64646;
+  --vkui-color-background-accent-hover: #5b8fc5;
+  --vkui-color-background-positive-hover: #55c255;
+  --vkui-color-background-negative-hover: #f05555;
+
+  --vkui-color-text-primary: #222222;
+  --vkui-color-text-secondary: #818c99;
+  --vkui-color-text-accent: #5181b8;
+  --vkui-color-text-positive: #4bb34b;
+  --vkui-color-text-negative: #e64646;
+  --vkui-color-text-link: #5181b8;
+
+  --vkui-color-separator: #d7d8db;
+  --vkui-color-icon-primary: #222222;
+  --vkui-color-icon-secondary: #818c99;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 50%;
+}
+
+/* Override VKUI Panel background */
+.vkuiPanel {
+  background: var(--vkui-color-background-secondary) !important;
+}
+
+.vkuiGroup {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.vkuiGroup__separator {
+  display: none !important;
+}
+
+/* Header styling */
+.vkuiPanelHeader {
+  background: var(--vkui-color-background-primary) !important;
+  border-bottom: 1px solid var(--vkui-color-separator) !important;
+}
+
+/* Card styling */
+.vkuiCard {
+  border-radius: var(--radius-lg) !important;
+  overflow: hidden !important;
+}
+
+/* Button overrides */
+.vkuiButton--mode-primary {
+  background: var(--vkui-color-background-accent) !important;
+}
+
+.vkuiButton--mode-primary:hover {
+  background: var(--vkui-color-background-accent-hover) !important;
+}
+
+.vkuiButton--appearance-positive {
+  background: var(--vkui-color-background-positive) !important;
+}
+
+.vkuiButton--appearance-positive:hover {
+  background: var(--vkui-color-background-positive-hover) !important;
+}
+
+.vkuiButton--appearance-negative {
+  background: var(--vkui-color-background-negative) !important;
+}
+
+.vkuiButton--appearance-negative:hover {
+  background: var(--vkui-color-background-negative-hover) !important;
+}
+
+/* Input styling */
+.vkuiInput,
+.vkuiSelect {
+  background: var(--vkui-color-background-primary) !important;
+}
+
+/* FormItem styling */
+.vkuiFormItem__top {
+  color: var(--vkui-color-text-secondary) !important;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Responsive adjustments */
+@media (max-width: 375px) {
+  .vkuiDiv {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    animation: none;
+  }
+}

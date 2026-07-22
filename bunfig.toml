@@ -1,0 +1,3 @@
+[install]
+# Keep a single lockfile at the workspace root for backend, webapp, and contracts.
+saveTextLockfile = true

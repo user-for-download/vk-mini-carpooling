@@ -1,0 +1,28 @@
+{
+  "name": "@local-blablacar/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "typecheck": "tsc --noEmit",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:seed": "bun run prisma/seed.ts",
+    "prisma:seed:test": "bun run prisma/seed-test.ts",
+    "prisma:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@local-blablacar/contracts": "workspace:*",
+    "@prisma/client": "^5.18.0",
+    "hono": "^4.5.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "prisma": "^5.18.0",
+    "typescript": "^5.5.0",
+    "@types/bun": "latest"
+  }
+}
