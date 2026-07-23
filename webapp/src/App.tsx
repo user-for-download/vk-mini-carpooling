@@ -5,6 +5,7 @@ import {
   AdaptivityProvider,
   AppRoot,
   ConfigProvider,
+  Panel,
   Root,
   View,
   Spinner,
@@ -77,9 +78,11 @@ function Layout() {
     return (
       <Root activeView={EView.MAIN}>
         <View nav={EView.MAIN} activePanel={EPanel.ROLE_SELECTOR}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-            <Spinner size="large" />
-          </div>
+          <Panel nav={EPanel.ROLE_SELECTOR}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+              <Spinner size="large" />
+            </div>
+          </Panel>
         </View>
       </Root>
     );
