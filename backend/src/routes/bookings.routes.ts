@@ -10,6 +10,8 @@ const STATUS_BY_ERROR_CODE = {
   ALREADY_PROCESSED: 409,
   NO_SEATS: 409,
   NOT_FOUND: 404,
+  MAX_BOOKINGS: 409,
+  TIME_CONFLICT: 409,
 } as const;
 
 bookingsRoutes.onError((err, c) => {

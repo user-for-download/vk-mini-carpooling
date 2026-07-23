@@ -40,8 +40,13 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
   }
 
   // Check for time conflict (overlapping rides)
+  const RIDE_DURATION_MS = 2 * 60 * 60 * 1000; // assumed average trip length
+  const CONFLICT_BUFFER_MS = 2 * 60 * 60 * 1000; // buffer on each side of the ride window
+
   const rideStart = new Date(ride.departureTime);
-  const rideEnd = new Date(rideStart.getTime() + 2 * 60 * 60 * 1000); // Assume 2h ride duration
+  const rideEnd = new Date(rideStart.getTime() + RIDE_DURATION_MS);
+  const conflictWindowStart = new Date(rideStart.getTime() - CONFLICT_BUFFER_MS);
+  const conflictWindowEnd = new Date(rideEnd.getTime() + CONFLICT_BUFFER_MS);
 
   const conflictingBooking = await prisma.booking.findFirst({
     where: {
@@ -49,10 +54,7 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
       status: { in: [BOOKING_STATUS.PENDING, BOOKING_STATUS.APPROVED] },
       ride: {
         status: RIDE_STATUS.ACTIVE,
-        departureTime: {
-          gte: new Date(rideEnd.getTime() - 2 * 60 * 60 * 1000 - 2 * 60 * 60 * 1000), // 4h before ride end
-          lte: new Date(rideStart.getTime() + 2 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000), // 2h after ride end
-        },
+        departureTime: { gte: conflictWindowStart, lte: conflictWindowEnd },
       },
     },
     include: { ride: true },

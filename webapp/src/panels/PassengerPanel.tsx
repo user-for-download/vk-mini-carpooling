@@ -12,22 +12,21 @@ import {
   FormItem,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import type { LocationDTO, RideDTO, BookingDTO } from '@local-blablacar/contracts';
-import { listLocations } from '../api/locations';
+import type { RideDTO, BookingDTO } from '@local-blablacar/contracts';
+import { MAX_BOOKING_COUNT, BOOKING_STATUS } from '@local-blablacar/contracts';
 import { searchRides } from '../api/rides';
 import { createBooking, cancelBooking as cancelBookingApi, listMyBookings } from '../api/bookings';
-import { BOOKING_STATUS } from '@local-blablacar/contracts';
 import { TripCard } from '../components/TripCard';
+import { useLocations } from '../hooks/useLocations';
+import { formatRideDateTime } from '../utils/format';
 import '../styles.css';
 
 type View = 'search' | 'results' | 'bookings';
 
-const MAX_BOOKING_COUNT = 5;
-
 export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
   const [view, setView] = useState<View>('search');
-  const [locations, setLocations] = useState<LocationDTO[]>([]);
+  const locations = useLocations();
   const [fromId, setFromId] = useState<string>('');
   const [toId, setToId] = useState<string>('');
   const [rides, setRides] = useState<RideDTO[] | null>(null);
@@ -38,7 +37,6 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const [selectedSeats, setSelectedSeats] = useState<{ [rideId: number]: number }>({});
 
   useEffect(() => {
-    listLocations().then(setLocations).catch(console.error);
     listMyBookings().then(setMyBookings).catch(console.error);
   }, []);
 
@@ -50,10 +48,8 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
         fromId: fromId ? Number(fromId) : undefined,
         toId: toId ? Number(toId) : undefined,
       });
-      console.log('Search results:', results.length);
       setRides(results);
       setView('results');
-      console.log('View set to results');
     } catch (err) {
       console.error('Search error:', err);
     } finally {
@@ -234,30 +230,33 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
 
               {rides.map((ride) => {
                 const booked = isBooked(ride.id);
-                const rideSelectedSeats = selectedSeats[ride.id] || [];
                 return (
-                  <div key={ride.id} style={{ marginBottom: 12 }}>
-                    <TripCard
-                      ride={ride}
-                      selectedSeats={rideSelectedSeats}
-                      onSelectSeat={(seatId) => {
-                        setSelectedSeats((prev) => {
-                          const current = prev[ride.id] || [];
-                          const next = current.includes(seatId)
-                            ? current.filter((s) => s !== seatId)
-                            : [...current, seatId];
-                          return { ...prev, [ride.id]: next };
-                        });
-                      }}
-                      onBook={() => handleBook(ride.id)}
-                      onCancel={() => {
-                        const booking = myBookings.find((b) => b.rideId === ride.id);
-                        if (booking) handleCancelBooking(booking.id);
-                      }}
-                      mode="passenger"
-                      isBooked={booked}
-                    />
-                  </div>
+                  <Card key={ride.id} mode="shadow" style={{ marginBottom: 12 }}>
+                    <Div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Title level="3" style={{ color: 'var(--vkui-color-text-accent)', marginBottom: 4 }}>
+                            {ride.price} ₽
+                          </Title>
+                          <Text style={{ marginBottom: 4 }}>
+                            {ride.from?.name} → {ride.to?.name}
+                          </Text>
+                          <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
+                            {formatRideDateTime(ride.departureTime)}
+                            {' · '}{ride.seatsAvailable} мест
+                          </Text>
+                        </div>
+                        <Button
+                          size="s"
+                          mode={booked ? 'secondary' : 'primary'}
+                          appearance={booked ? 'neutral' : 'positive'}
+                          onClick={() => routeNavigator.push(`/ride/${ride.id}`)}
+                        >
+                          {booked ? 'Забронировано' : 'Подробнее'}
+                        </Button>
+                      </div>
+                    </Div>
+                  </Card>
                 );
               })}
 
@@ -311,12 +310,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                       </div>
                       <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
                         {booking.ride?.departureTime
-                          ? new Date(booking.ride.departureTime).toLocaleString('ru-RU', {
-                              day: 'numeric',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
+                          ? formatRideDateTime(booking.ride.departureTime)
                           : '—'}
                         {' · '}{booking.seatsBooked} мест · {booking.ride?.price} ₽
                       </Text>

@@ -33,7 +33,7 @@ pnpm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
-
+dump_out/
 # Testing
 coverage/
 

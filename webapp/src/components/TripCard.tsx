@@ -1,5 +1,6 @@
 import { Text, Title, Div, Card, Button } from '@vkontakte/vkui';
 import { CarSeatMap } from './CarSeatMap';
+import { formatRideDateTime } from '../utils/format';
 
 interface Passenger {
   id: string;
@@ -89,12 +90,7 @@ export function TripCard({
               {ride.from?.name} → {ride.to?.name}
             </Text>
             <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-              {new Date(ride.departureTime).toLocaleString('ru-RU', {
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {formatRideDateTime(ride.departureTime)}
             </Text>
           </div>
           {mode === 'driver' && (

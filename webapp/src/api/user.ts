@@ -1,12 +1,7 @@
+import type { UserDTO } from '@local-blablacar/contracts';
 import { api } from './client';
 
-export interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  photoUrl?: string;
-  lastPlatform?: string;
-}
+export type User = UserDTO;
 
 export async function initUser(data: { firstName?: string; lastName?: string; photoUrl?: string }): Promise<User> {
   const { data: user } = await api.post<User>('/api/users/init', data);

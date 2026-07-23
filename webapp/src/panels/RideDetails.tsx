@@ -7,14 +7,13 @@ import {
   Text,
   Title,
   Div,
-  Card,
   Spinner,
 } from '@vkontakte/vkui';
 import { useParams, useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import type { RideDTO, BookingDTO } from '@local-blablacar/contracts';
-import { RIDE_STATUS } from '@local-blablacar/contracts';
 import { getRide } from '../api/rides';
-import { createBooking, listMyBookings } from '../api/bookings';
+import { createBooking, cancelBooking as cancelBookingApi, listMyBookings } from '../api/bookings';
+import { TripCard } from '../components/TripCard';
 import '../styles.css';
 
 export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
@@ -24,6 +23,8 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
   const [notFound, setNotFound] = useState(false);
   const [myBookings, setMyBookings] = useState<BookingDTO[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!params?.id) return;
@@ -37,13 +38,39 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     return myBookings.some((b) => b.rideId === rideId);
   }
 
+  function getBookingForRide(rideId: number): BookingDTO | undefined {
+    return myBookings.find((b) => b.rideId === rideId);
+  }
+
   async function handleBook() {
-    if (!ride) return;
+    if (!ride || selectedSeats.length === 0) return;
     setLoading(true);
+    setError(null);
     try {
-      await createBooking({ rideId: ride.id, seatsBooked: 1 });
+      await createBooking({ rideId: ride.id, seatsBooked: selectedSeats.length });
       const updatedBookings = await listMyBookings();
       setMyBookings(updatedBookings);
+      setSelectedSeats([]);
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Не удалось забронировать';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCancel() {
+    const booking = ride ? getBookingForRide(ride.id) : undefined;
+    if (!booking) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await cancelBookingApi(booking.id);
+      const updatedBookings = await listMyBookings();
+      setMyBookings(updatedBookings);
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Не удалось отменить';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -56,6 +83,22 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
       <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.back()} />}>
         Детали поездки
       </PanelHeader>
+
+      {error && (
+        <Div>
+          <div style={{ padding: 12, background: 'var(--vkui-color-background-negative)', borderRadius: 8 }}>
+            <Text style={{ color: 'white' }}>{error}</Text>
+            <Button
+              size="s"
+              mode="secondary"
+              onClick={() => setError(null)}
+              style={{ marginTop: 8 }}
+            >
+              Закрыть
+            </Button>
+          </div>
+        </Div>
+      )}
 
       {!ride && !notFound && (
         <Div style={{ textAlign: 'center', padding: 40 }}>
@@ -76,114 +119,21 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
 
       {ride && (
         <Div>
-          <Card mode="shadow">
-            <Div>
-              <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <Text style={{ color: 'var(--vkui-color-text-secondary)', marginBottom: 8 }}>
-                  Маршрут
-                </Text>
-                <Title level="2" style={{ marginBottom: 8 }}>
-                  {ride.from?.name}
-                </Title>
-                <Text style={{ color: 'var(--vkui-color-text-accent)', fontSize: 24, marginBottom: 8 }}>
-                  →
-                </Text>
-                <Title level="2">
-                  {ride.to?.name}
-                </Title>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '12px 0',
-                borderTop: '1px solid var(--vkui-color-separator)',
-              }}>
-                <Text style={{ color: 'var(--vkui-color-text-secondary)' }}>
-                  Дата и время
-                </Text>
-                <Text style={{ fontWeight: 500 }}>
-                  {new Date(ride.departureTime).toLocaleString('ru-RU', {
-                    day: 'numeric',
-                    month: 'long',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </Text>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '12px 0',
-                borderTop: '1px solid var(--vkui-color-separator)',
-              }}>
-                <Text style={{ color: 'var(--vkui-color-text-secondary)' }}>
-                  Свободных мест
-                </Text>
-                <Text style={{ fontWeight: 500 }}>{ride.seatsAvailable}</Text>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '12px 0',
-                borderTop: '1px solid var(--vkui-color-separator)',
-              }}>
-                <Text style={{ color: 'var(--vkui-color-text-secondary)' }}>
-                  Цена за место
-                </Text>
-                <Title level="3" style={{ color: 'var(--vkui-color-text-accent)' }}>
-                  {ride.price} ₽
-                </Title>
-              </div>
-
-              {ride.driver && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '16px 0',
-                  borderTop: '1px solid var(--vkui-color-separator)',
-                }}>
-                  <div style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    background: 'var(--vkui-color-background-accent)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: 20,
-                    fontWeight: 700,
-                  }}>
-                    {ride.driver.firstName[0]}
-                  </div>
-                  <div>
-                    <Text style={{ fontWeight: 500 }}>
-                      {ride.driver.firstName} {ride.driver.lastName}
-                    </Text>
-                    <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-                      Водитель
-                    </Text>
-                  </div>
-                </div>
-              )}
-
-              <Button
-                size="l"
-                stretched
-                mode={booked ? 'secondary' : 'primary'}
-                appearance={booked ? 'neutral' : 'positive'}
-                disabled={booked || loading}
-                onClick={handleBook}
-                style={{ marginTop: 16 }}
-              >
-                {loading ? 'Отправка...' : booked ? 'Заявка отправлена' : 'Забронировать место'}
-              </Button>
-            </Div>
-          </Card>
+          <TripCard
+            ride={ride}
+            selectedSeats={selectedSeats}
+            onSelectSeat={(seatId) => {
+              setSelectedSeats((prev) =>
+                prev.includes(seatId)
+                  ? prev.filter((s) => s !== seatId)
+                  : [...prev, seatId]
+              );
+            }}
+            onBook={handleBook}
+            onCancel={handleCancel}
+            mode="passenger"
+            isBooked={booked}
+          />
         </Div>
       )}
     </PanelType>

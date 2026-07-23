@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { ZodError } from 'zod';
 import { env, corsOrigins } from './runtime';
 import { ridesRoutes } from './routes/rides.routes';
 import { bookingsRoutes } from './routes/bookings.routes';
@@ -20,6 +21,14 @@ app.route('/api/locations', locationsRoutes);
 app.route('/api/users', usersRoutes);
 
 app.onError((err, c) => {
+  if (err instanceof ZodError) {
+    const issue = err.issues[0];
+    return c.json(
+      { error: 'VALIDATION_ERROR', message: issue?.message ?? 'Invalid request', issues: err.issues },
+      400,
+    );
+  }
+
   console.error(err);
   return c.json({ error: 'Internal server error' }, 500);
 });

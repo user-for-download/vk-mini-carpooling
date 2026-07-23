@@ -13,12 +13,13 @@ import {
   Input,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import type { LocationDTO, RideDTO } from '@local-blablacar/contracts';
-import { listLocations } from '../api/locations';
+import type { RideDTO } from '@local-blablacar/contracts';
 import { createRide, listMyRides, cancelRide as cancelRideApi } from '../api/rides';
 import { updateBookingStatus } from '../api/bookings';
 import { RIDE_STATUS, BOOKING_STATUS } from '@local-blablacar/contracts';
 import { TripCard } from '../components/TripCard';
+import { useLocations } from '../hooks/useLocations';
+import { formatRideDateTime } from '../utils/format';
 import '../styles.css';
 
 type View = 'list' | 'create' | 'rides';
@@ -26,7 +27,7 @@ type View = 'list' | 'create' | 'rides';
 export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
   const [view, setView] = useState<View>('list');
-  const [locations, setLocations] = useState<LocationDTO[]>([]);
+  const locations = useLocations();
   const [myRides, setMyRides] = useState<RideDTO[]>([]);
   const [form, setForm] = useState({
     fromId: '',
@@ -44,7 +45,6 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   }
 
   useEffect(() => {
-    listLocations().then(setLocations).catch(console.error);
     refresh().catch(console.error);
   }, []);
 
@@ -345,12 +345,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                         {ride.from?.name} → {ride.to?.name}
                       </Text>
                       <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-                        {new Date(ride.departureTime).toLocaleString('ru-RU', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatRideDateTime(ride.departureTime)}
                         {' · '}{ride.seatsAvailable} мест · {ride.bookings?.length || 0} заявок
                       </Text>
                     </div>

@@ -3,36 +3,39 @@
    ============================================ */
 
 :root {
-  /* VKUI Color Tokens */
-  --vkui-color-background-primary: #ffffff;
-  --vkui-color-background-secondary: #f2f3f5;
-  --vkui-color-background-tertiary: #e7e8ec;
-  --vkui-color-background-accent: #5181b8;
-  --vkui-color-background-positive: #4bb34b;
-  --vkui-color-background-negative: #e64646;
-  --vkui-color-background-accent-hover: #5b8fc5;
-  --vkui-color-background-positive-hover: #55c255;
-  --vkui-color-background-negative-hover: #f05555;
+  /* Each of these aliases VK's real, live theme token (dev.vk.ru /
+     @vkontakte/vkui-tokens, "vkontakteCom" theme) — so it auto-adapts to
+     light/dark mode and any VK theme change instead of staying frozen.
+     The hex after the comma is only a fallback for contexts where the
+     real VKUI stylesheet isn't loaded (e.g. an isolated component preview). */
+  --vkui-color-background-primary: var(--vkui--color_background_content, #ffffff);
+  --vkui-color-background-secondary: var(--vkui--color_background_secondary, #f2f3f5);
+  --vkui-color-background-tertiary: var(--vkui--color_background_tertiary, #e7e8ec);
+  --vkui-color-background-accent: var(--vkui--color_background_accent, #5181b8);
+  --vkui-color-background-positive: var(--vkui--color_background_positive, #4bb34b);
+  --vkui-color-background-negative: var(--vkui--color_background_negative, #e64646);
+  --vkui-color-background-accent-hover: var(--vkui--color_background_accent--hover, #5b8fc5);
+  --vkui-color-background-positive-hover: var(--vkui--color_background_positive--hover, #55c255);
+  --vkui-color-background-negative-hover: var(--vkui--color_background_negative--hover, #f05555);
 
-  --vkui-color-text-primary: #222222;
-  --vkui-color-text-secondary: #818c99;
-  --vkui-color-text-accent: #5181b8;
-  --vkui-color-text-positive: #4bb34b;
-  --vkui-color-text-negative: #e64646;
-  --vkui-color-text-link: #5181b8;
+  --vkui-color-text-primary: var(--vkui--color_text_primary, #222222);
+  --vkui-color-text-secondary: var(--vkui--color_text_secondary, #818c99);
+  --vkui-color-text-accent: var(--vkui--color_text_accent, #5181b8);
+  --vkui-color-text-positive: var(--vkui--color_text_positive, #4bb34b);
+  --vkui-color-text-negative: var(--vkui--color_text_negative, #e64646);
+  --vkui-color-text-link: var(--vkui--color_text_link, #5181b8);
 
-  --vkui-color-separator: #d7d8db;
-  --vkui-color-icon-primary: #222222;
-  --vkui-color-icon-secondary: #818c99;
+  --vkui-color-separator: var(--vkui--color_separator_primary, #d7d8db);
+  --vkui-color-icon-primary: var(--vkui--color_icon_primary, #222222);
+  --vkui-color-icon-secondary: var(--vkui--color_icon_secondary, #818c99);
 
-  /* Spacing */
+  /* Spacing / radius — these are your own scale, not VKUI's, so left as-is */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
   --spacing-lg: 16px;
   --spacing-xl: 24px;
 
-  /* Border radius */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;

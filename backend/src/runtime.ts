@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { MAX_BOOKING_COUNT } from '@local-blablacar/contracts';
 
 const EnvSchema = z.object({
   DATABASE_URL: z.string().url(),
@@ -10,7 +11,7 @@ const EnvSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
-  MAX_BOOKING_COUNT: z.coerce.number().int().min(1).default(5),
+  MAX_BOOKING_COUNT: z.coerce.number().int().min(1).default(MAX_BOOKING_COUNT),
 });
 
 export const env = EnvSchema.parse(process.env);
