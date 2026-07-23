@@ -1,21 +1,21 @@
-import { useEffect, useState, useRef } from 'react';
+import { useState, type ReactElement } from 'react';
 import {
   Panel,
   PanelHeader,
   PanelHeaderBack,
-  Button,
-  Text,
-  Title,
   Div,
   Spinner,
+  Placeholder,
+  Button,
 } from '@vkontakte/vkui';
 import { useParams, useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import type { RideDTO, BookingDTO } from '@local-blablacar/contracts';
+import type { BookingDTO } from '@local-blablacar/contracts';
 import { BOOKING_STATUS } from '@local-blablacar/contracts';
 import { getRide } from '../../api/rides';
-import { createBooking, cancelBooking as cancelBookingApi, listMyBookings, updateBooking as updateBookingApi } from '../../api/bookings';
+import { createBooking, cancelBooking as cancelBookingApi, updateBooking as updateBookingApi } from '../../api/bookings';
 import { TripCard } from '../../components/TripCard';
 import { ConfirmPopout } from '../../components/ConfirmPopout';
+import { ErrorSnackbar } from '../../components/ErrorSnackbar';
 import { useRideDetails } from '../../hooks/useRideDetails';
 import { useMyBookings } from '../../hooks/useMyBookings';
 import '../../styles.css';
@@ -28,20 +28,35 @@ export function RideDetailsPanel({ nav }: Props) {
   const routeNavigator = useRouteNavigator();
   const params = useParams<'id'>();
   const rideId = params?.id ? Number(params.id) : null;
-  const { ride, setRide, notFound, isLoading } = useRideDetails(rideId);
+  
+  const { ride, setRide, notFound, isLoading: isRideLoading } = useRideDetails(rideId);
   const { bookings: myBookings, refetch: refetchBookings } = useMyBookings();
+  
   const [loading, setLoading] = useState(false);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [passengerNote, setPassengerNote] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Snackbar State
+  const [snackbar, setSnackbar] = useState<ReactElement | null>(null);
 
-  function isBooked(rideId: number): boolean {
-    return myBookings.some((b) => b.rideId === rideId && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED));
+  function showErrorSnackbar(message?: string, retryAction?: () => void) {
+    if (snackbar) return;
+    setSnackbar(
+      <ErrorSnackbar
+        text={message}
+        onClose={() => setSnackbar(null)}
+        action={retryAction}
+      />
+    );
   }
 
-  function getBookingForRide(rideId: number): BookingDTO | undefined {
-    return myBookings.find((b) => b.rideId === rideId && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED));
+  function isBooked(id: number): boolean {
+    return myBookings.some((b) => b.rideId === id && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED));
+  }
+
+  function getBookingForRide(id: number): BookingDTO | undefined {
+    return myBookings.find((b) => b.rideId === id && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED));
   }
 
   function openBookConfirm() {
@@ -58,7 +73,6 @@ export function RideDetailsPanel({ nav }: Props) {
   async function processBook() {
     if (!ride) return;
     setLoading(true);
-    setError(null);
     try {
       await createBooking({ rideId: ride.id, seatIds: selectedSeats, passengerNote: passengerNote.trim() ? passengerNote.trim() : undefined });
       await refetchBookings();
@@ -68,7 +82,7 @@ export function RideDetailsPanel({ nav }: Props) {
       setPassengerNote('');
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось забронировать';
-      setError(message);
+      showErrorSnackbar(message);
     } finally {
       setLoading(false);
     }
@@ -88,7 +102,6 @@ export function RideDetailsPanel({ nav }: Props) {
 
   async function processCancel(bookingId: number) {
     setLoading(true);
-    setError(null);
     try {
       await cancelBookingApi(bookingId);
       if (ride) {
@@ -99,7 +112,7 @@ export function RideDetailsPanel({ nav }: Props) {
       setIsEditing(false);
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось отменить';
-      setError(message);
+      showErrorSnackbar(message);
     } finally {
       setLoading(false);
     }
@@ -128,7 +141,6 @@ export function RideDetailsPanel({ nav }: Props) {
 
   async function processUpdate(bookingId: number) {
     setLoading(true);
-    setError(null);
     try {
       await updateBookingApi(bookingId, { seatIds: selectedSeats, passengerNote: passengerNote.trim() ? passengerNote.trim() : null });
       if (ride) {
@@ -139,7 +151,7 @@ export function RideDetailsPanel({ nav }: Props) {
       setIsEditing(false);
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось изменить бронирование';
-      setError(message);
+      showErrorSnackbar(message);
     } finally {
       setLoading(false);
     }
@@ -161,37 +173,24 @@ export function RideDetailsPanel({ nav }: Props) {
         Детали поездки
       </PanelHeader>
 
-      {error && (
-        <Div>
-          <div style={{ padding: 12, background: 'var(--vkui-color-background-negative)', borderRadius: 8 }}>
-            <Text style={{ color: 'white' }}>{error}</Text>
-            <Button
-              size="s"
-              mode="secondary"
-              onClick={() => setError(null)}
-              style={{ marginTop: 8 }}
-            >
-              Закрыть
-            </Button>
-          </div>
-        </Div>
-      )}
-
       {!ride && !notFound && (
         <Div style={{ textAlign: 'center', padding: 40 }}>
-          <Spinner />
+          <Spinner size="large" />
         </Div>
       )}
 
       {notFound && (
-        <Div style={{ textAlign: 'center', padding: 40 }}>
-          <Title level="3" style={{ marginBottom: 8 }}>
-            Поездка не найдена
-          </Title>
-          <Text style={{ color: 'var(--vkui-color-text-secondary)' }}>
-            Возможно, она уже завершена
-          </Text>
-        </Div>
+        <Placeholder
+          stretched
+          header="Поездка не найдена"
+          action={
+            <Button size="m" mode="secondary" onClick={() => routeNavigator.push('/passenger')}>
+              К поиску
+            </Button>
+          }
+        >
+          Возможно, она уже завершена или отменена
+        </Placeholder>
       )}
 
       {ride && (
@@ -204,7 +203,7 @@ export function RideDetailsPanel({ nav }: Props) {
             passengerNote={isEditing ? passengerNote : (currentBooking?.passengerNote || passengerNote)}
             onPassengerNoteChange={setPassengerNote}
             onSelectSeat={(seatId) => {
-              if (isBooked && !isEditing) return;
+              if (booked && !isEditing) return;
               setSelectedSeats((prev) =>
                 prev.includes(seatId)
                   ? prev.filter((s) => s !== seatId)
@@ -222,6 +221,8 @@ export function RideDetailsPanel({ nav }: Props) {
           />
         </Div>
       )}
+
+      {snackbar}
     </Panel>
   );
 }

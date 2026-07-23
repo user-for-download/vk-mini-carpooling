@@ -1,4 +1,4 @@
-import { useContext, useState, useRef, useCallback } from 'react';
+import { useContext, useState, useRef, useCallback, type ReactElement } from 'react';
 import {
   Panel,
   PanelHeader,
@@ -17,13 +17,12 @@ import type { RideDTO } from '@local-blablacar/contracts';
 import { MAX_BOOKING_COUNT, BOOKING_STATUS } from '@local-blablacar/contracts';
 import { searchRides } from '../../api/rides';
 import { createBooking, cancelBooking as cancelBookingApi } from '../../api/bookings';
-import { TripCard } from '../../components/TripCard';
 import { TripListItem } from '../../components/TripListItem';
 import { ConfirmPopout } from '../../components/ConfirmPopout';
+import { ErrorSnackbar } from '../../components/ErrorSnackbar';
+import { NetworkError } from '../../components/NetworkError';
 import { DataContext } from '../../context/dataContext';
 import { useMyBookings } from '../../hooks/useMyBookings';
-import { formatRideDateTime, formatPrice } from '../../utils/format';
-import { SEATS } from '../../utils/constants';
 import '../../styles.css';
 
 type View = 'search' | 'results';
@@ -38,7 +37,7 @@ export function PassengerPanel({ nav }: Props) {
   const routeNavigator = useRouteNavigator();
   const ctx = useContext(DataContext);
   const locations = ctx?.locations ?? [];
-  const { bookings: myBookings, setBookings: setMyBookings, refetch: refetchBookings } = useMyBookings();
+  const { bookings: myBookings, isLoading: isBookingsLoading, error: initialLoadError, refetch: refetchBookings } = useMyBookings();
 
   // Restore search state from sessionStorage on mount
   const savedState = (() => {
@@ -57,10 +56,23 @@ export function PassengerPanel({ nav }: Props) {
   const [rides, setRides] = useState<RideDTO[] | null>(savedState?.rides || null);
   const [loading, setLoading] = useState(false);
   const [bookingLoading, setBookingLoading] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Record<number, number[]>>({});
   const [showHistory, setShowHistory] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState<ReactElement | null>(null);
+
+  function showErrorSnackbar(message?: string, retryAction?: () => void) {
+    if (snackbar) return;
+    setSnackbar(
+      <ErrorSnackbar
+        text={message}
+        onClose={() => setSnackbar(null)}
+        action={retryAction}
+      />
+    );
+  }
 
   // Save search state to sessionStorage whenever it changes
   const saveState = useCallback((newState: Partial<{ view: View; fromId: string; toId: string; date: string; rides: RideDTO[] | null }>) => {
@@ -79,23 +91,22 @@ export function PassengerPanel({ nav }: Props) {
     abortRef.current = controller;
 
     setLoading(true);
-    setError(null);
     try {
       const results = await searchRides({
         fromId: fromId ? Number(fromId) : undefined,
         toId: toId ? Number(toId) : undefined,
         date: date || undefined,
       }, controller.signal);
+      
       if (!controller.signal.aborted) {
         setRides(results);
         setView('results');
-        // Save search state to sessionStorage
         saveState({ view: 'results', fromId, toId, date, rides: results });
       }
     } catch (err: any) {
       if (controller.signal.aborted) return;
       console.error('Search error:', err);
-      setError('Не удалось выполнить поиск. Попробуйте позже.');
+      showErrorSnackbar('Не удалось выполнить поиск. Попробуйте позже.', handleSearch);
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
@@ -105,8 +116,8 @@ export function PassengerPanel({ nav }: Props) {
     const seats = selectedSeats[rideId] || [];
     if (seats.length === 0) return;
     if (bookingLoading === rideId) return;
+    
     setBookingLoading(rideId);
-    setError(null);
     try {
       await createBooking({ rideId, seatIds: seats });
       await refetchBookings();
@@ -117,7 +128,7 @@ export function PassengerPanel({ nav }: Props) {
       });
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось забронировать';
-      setError(message);
+      showErrorSnackbar(message);
     } finally {
       setBookingLoading(null);
     }
@@ -138,13 +149,12 @@ export function PassengerPanel({ nav }: Props) {
   }
 
   async function processCancelBooking(bookingId: number) {
-    setError(null);
     try {
       await cancelBookingApi(bookingId);
       await refetchBookings();
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось отменить';
-      setError(message);
+      showErrorSnackbar(message);
     }
   }
 
@@ -156,42 +166,36 @@ export function PassengerPanel({ nav }: Props) {
     (b) => b.status === BOOKING_STATUS.REJECTED || b.status === BOOKING_STATUS.CANCELLED
   );
 
+  // If initial bookings fetch completely fails
+  if (initialLoadError && view === 'search') {
+    return (
+      <Panel nav={nav}>
+        <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
+          Пассажир
+        </PanelHeader>
+        <NetworkError action={refetchBookings} text={initialLoadError} />
+      </Panel>
+    );
+  }
+
   return (
     <Panel nav={nav}>
       <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
         Пассажир
       </PanelHeader>
 
-      {error && (
-        <Div>
-          <Card mode="shadow" style={{ background: 'var(--vkui-color-background-negative)', padding: 12 }}>
-            <Text style={{ color: 'white' }}>{error}</Text>
-            <Button
-              size="s"
-              mode="secondary"
-              onClick={() => setError(null)}
-              style={{ marginTop: 8 }}
-            >
-              Закрыть
-            </Button>
-          </Card>
-        </Div>
-      )}
-
       {/* My Bookings Section - Collapsible */}
       <Div style={{ paddingBottom: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <Title level="3">Мои бронирования ({activeBookings.length}/{MAX_BOOKING_COUNT})</Title>
-          <Button
-            size="s"
-            mode="refresh"
-            onClick={refetchBookings}
-          >
+          <Button size="s" mode="refresh" onClick={refetchBookings} disabled={isBookingsLoading}>
             Обновить
           </Button>
         </div>
 
-        {myBookings.length === 0 ? (
+        {isBookingsLoading && myBookings.length === 0 ? (
+          <Spinner size="medium" style={{ margin: '20px 0' }} />
+        ) : myBookings.length === 0 ? (
           <Card mode="shadow" style={{ textAlign: 'center', padding: 20 }}>
             <Text style={{ color: 'var(--vkui-color-text-secondary)' }}>
               У вас пока нет бронирований
@@ -418,6 +422,9 @@ export function PassengerPanel({ nav }: Props) {
           )}
         </Div>
       )}
+      
+      {/* Snackbar for errors */}
+      {snackbar}
     </Panel>
   );
 }
