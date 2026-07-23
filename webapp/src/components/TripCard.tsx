@@ -1,4 +1,4 @@
-import { Text, Title, Div, Card, Button } from '@vkontakte/vkui';
+import { Text, Title, Div, Card, Button, FormItem, Textarea } from '@vkontakte/vkui';
 import { CarSeatMap } from './CarSeatMap';
 import { formatRideDateTime } from '../utils/format';
 
@@ -7,6 +7,8 @@ interface Passenger {
   firstName: string;
   lastName: string;
   seatId?: number;
+  note?: string | null;
+  isFirstSeatOfBooking: boolean;
 }
 
 interface TripCardProps {
@@ -16,12 +18,10 @@ interface TripCardProps {
     seatsAvailable: number;
     offeredSeats: number[];
     departureTime: string;
+    driverNote?: string | null;
     from?: { name: string };
     to?: { name: string };
-    driver?: {
-      firstName: string;
-      lastName: string;
-    };
+    driver?: { firstName: string; lastName: string };
   };
   bookings?: Array<{
     id: number;
@@ -29,12 +29,12 @@ interface TripCardProps {
     seatsBooked: number;
     seatIds: number[];
     status: string;
-    passenger?: {
-      firstName: string;
-      lastName: string;
-    };
+    passengerNote?: string | null;
+    passenger?: { firstName: string; lastName: string };
   }>;
   selectedSeats?: number[];
+  passengerNote?: string;
+  onPassengerNoteChange?: (val: string) => void;
   onSelectSeat?: (seatId: number) => void;
   onBook?: () => void;
   onCancel?: () => void;
@@ -54,13 +54,14 @@ export function TripCard({
   ride,
   bookings = [],
   selectedSeats = [],
+  passengerNote = '',
+  onPassengerNoteChange,
   onSelectSeat,
   onBook,
   onCancel,
   mode = 'passenger',
   isBooked = false,
 }: TripCardProps) {
-  // Map bookings to EXACT occupied seats using seatIds
   const occupiedSeats = bookings
     .filter((b) => b.status === 'APPROVED' || b.status === 'PENDING')
     .flatMap((b) => (b.seatIds || []).map((seatId) => ({ seatId, booking: b })));
@@ -68,11 +69,13 @@ export function TripCard({
   const passengers: Passenger[] = bookings
     .filter((b) => b.status === 'APPROVED' || b.status === 'PENDING')
     .flatMap((b) =>
-      (b.seatIds || []).map((seatId) => ({
+      (b.seatIds || []).map((seatId, idx) => ({
         id: `${b.passengerId}-${seatId}`,
         firstName: b.passenger?.firstName ?? 'Пассажир',
         lastName: b.passenger?.lastName ?? '',
         seatId,
+        note: b.passengerNote,
+        isFirstSeatOfBooking: idx === 0,
       })),
     );
 
@@ -85,17 +88,13 @@ export function TripCard({
             <Title level="3" style={{ color: 'var(--vkui-color-text-accent)', marginBottom: 4 }}>
               {ride.price} ₽
             </Title>
-            <Text style={{ marginBottom: 4 }}>
-              {ride.from?.name} → {ride.to?.name}
-            </Text>
+            <Text style={{ marginBottom: 4 }}>{ride.from?.name} → {ride.to?.name}</Text>
             <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
               {formatRideDateTime(ride.departureTime)}
             </Text>
           </div>
           {mode === 'driver' && (
-            <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-              {ride.seatsAvailable} мест
-            </Text>
+            <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>{ride.seatsAvailable} мест</Text>
           )}
         </div>
 
@@ -112,104 +111,84 @@ export function TripCard({
           />
         </div>
 
-        {/* Driver info (for passengers) */}
-        {mode === 'passenger' && ride.driver && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '12px 0',
-            borderTop: '1px solid var(--vkui-color-separator)',
-          }}>
-            <div style={{
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              background: 'var(--vkui-color-background-accent)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: 16,
-              fontWeight: 700,
-            }}>
-              {ride.driver.firstName[0]}
+        {/* Driver info & note */}
+        {ride.driver && (
+          <div style={{ padding: '12px 0', borderTop: '1px solid var(--vkui-color-separator)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%', background: 'var(--vkui-color-background-accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 16, fontWeight: 700,
+              }}>
+                {ride.driver.firstName[0]}
+              </div>
+              <div>
+                <Text style={{ fontWeight: 500 }}>{ride.driver.firstName} {ride.driver.lastName}</Text>
+                <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 12 }}>Водитель</Text>
+              </div>
             </div>
-            <div>
-              <Text style={{ fontWeight: 500 }}>
-                {ride.driver.firstName} {ride.driver.lastName}
-              </Text>
-              <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 12 }}>
-                Водитель
-              </Text>
-            </div>
+            {ride.driverNote && (
+              <div style={{ padding: 12, background: 'var(--vkui--color_background_secondary)', borderRadius: 8, marginTop: 12 }}>
+                <Text style={{ fontSize: 13, color: 'var(--vkui--color_text_secondary)', marginBottom: 4 }}>Условия поездки:</Text>
+                <Text style={{ fontSize: 14 }}>{ride.driverNote}</Text>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Passenger list */}
+        {/* Passenger list & notes */}
         {passengers.length > 0 && (
           <div style={{ borderTop: '1px solid var(--vkui-color-separator)', paddingTop: 12 }}>
             <Text style={{ fontWeight: 500, marginBottom: 8, color: 'var(--vkui-color-text-secondary)', fontSize: 12 }}>
               Пассажиры ({passengers.length})
             </Text>
             {passengers.map((p) => (
-              <div
-                key={p.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '6px 0',
-                }}
-              >
-                <div style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: '50%',
-                  background: 'var(--vkui-color-background-positive)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: 12,
-                  fontWeight: 600,
-                }}>
-                  {p.firstName[0]}
+              <div key={p.id}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%', background: 'var(--vkui-color-background-positive)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 12, fontWeight: 600,
+                  }}>
+                    {p.firstName[0]}
+                  </div>
+                  <Text style={{ fontSize: 13 }}>{p.firstName} {p.lastName}</Text>
+                  <Text style={{ fontSize: 11, color: 'var(--vkui-color-text-secondary)' }}>
+                    {SEATS.find((s) => s.id === p.seatId)?.label}
+                  </Text>
                 </div>
-                <Text style={{ fontSize: 13 }}>
-                  {p.firstName} {p.lastName}
-                </Text>
-                <Text style={{ fontSize: 11, color: 'var(--vkui-color-text-secondary)' }}>
-                  {SEATS.find((s) => s.id === p.seatId)?.label}
-                </Text>
+                {p.note && p.isFirstSeatOfBooking && (
+                  <div style={{ paddingLeft: 36, marginTop: -4, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 13, color: 'var(--vkui--color_text_secondary)', fontStyle: 'italic' }}>
+                      «{p.note}»
+                    </Text>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
 
-        {/* Action buttons */}
+        {/* Actions & passenger comment field */}
         {mode === 'passenger' && (
           <div style={{ marginTop: 16 }}>
             {isBooked ? (
-              <Button
-                size="l"
-                stretched
-                mode="secondary"
-                onClick={onCancel}
-              >
+              <Button size="l" stretched mode="secondary" onClick={onCancel}>
                 Отменить бронь
               </Button>
             ) : (
-              <Button
-                size="l"
-                stretched
-                mode="primary"
-                appearance="positive"
-                onClick={onBook}
-                disabled={selectedSeats.length === 0}
-              >
-                Забронировать ({selectedSeats.length} мест)
-              </Button>
+              <>
+                <FormItem top="Комментарий для водителя (необязательно)" style={{ padding: 0, marginBottom: 16 }}>
+                  <Textarea
+                    placeholder="Например: со мной будет большая сумка"
+                    value={passengerNote}
+                    onChange={(e) => onPassengerNoteChange?.(e.target.value)}
+                  />
+                </FormItem>
+                <Button
+                  size="l" stretched mode="primary" appearance="positive" onClick={onBook} disabled={selectedSeats.length === 0}
+                >
+                  Забронировать ({selectedSeats.length} мест)
+                </Button>
+              </>
             )}
           </div>
         )}

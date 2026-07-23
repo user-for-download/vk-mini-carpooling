@@ -11,6 +11,7 @@ import {
   Card,
   FormItem,
   Input,
+  Textarea,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import type { RideDTO } from '@local-blablacar/contracts';
@@ -44,6 +45,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
     departureTime: '',
     offeredSeats: [1, 2, 3, 4, 5],
     price: '0',
+    driverNote: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +60,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   }, []);
 
   async function handleCreate() {
+    if (!window.confirm('Опубликовать поездку?')) return;
     setLoading(true);
     setError(null);
     try {
@@ -67,8 +70,9 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
         departureTime: new Date(form.departureTime).toISOString(),
         offeredSeats: form.offeredSeats,
         price: Number(form.price),
+        driverNote: form.driverNote || undefined,
       });
-      setForm({ fromId: '', toId: '', departureTime: '', offeredSeats: [1, 2, 3, 4, 5], price: '0' });
+      setForm({ fromId: '', toId: '', departureTime: '', offeredSeats: [1, 2, 3, 4, 5], price: '0', driverNote: '' });
       setView('list');
       await refresh();
     } catch (err: any) {
@@ -90,6 +94,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   }
 
   async function handleCancelRide(rideId: number) {
+    if (!window.confirm('Вы уверены, что хотите отменить поездку? Действие нельзя будет отменить.')) return;
     try {
       await cancelRideApi(rideId);
       await refresh();
@@ -191,6 +196,11 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                         <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
                           {booking.seatsBooked} мест ({booking.seatIds.map((id) => SEATS.find((s) => s.id === id)?.label).join(', ')})
                         </Text>
+                        {'passengerNote' in booking && booking.passengerNote && (
+                          <Text style={{ fontSize: 13, color: 'var(--vkui--color_text_secondary)', fontStyle: 'italic', marginTop: 4 }}>
+                            «{String(booking.passengerNote)}»
+                          </Text>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <Button
@@ -289,6 +299,14 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                         : [...f.offeredSeats, id],
                     }));
                   }}
+                />
+              </FormItem>
+
+              <FormItem top="Условия и комментарий (необязательно)">
+                <Textarea
+                  placeholder="Например: пустой багажник, можно с животными"
+                  value={form.driverNote}
+                  onChange={(e) => setForm((f) => ({ ...f, driverNote: e.target.value }))}
                 />
               </FormItem>
 

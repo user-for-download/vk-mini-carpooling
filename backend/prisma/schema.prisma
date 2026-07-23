@@ -45,6 +45,7 @@ model Ride {
   seatsAvailable Int        // kept for fast DB index filtering
   offeredSeats   Int[]      // e.g. [1, 2, 3, 4, 5] — which seats the driver offers
   price          Int
+  driverNote     String?    @db.VarChar(500)
   status         RideStatus @default(ACTIVE)
   createdAt      DateTime   @default(now())
 
@@ -68,8 +69,9 @@ model Booking {
   rideId      Int
   passengerId String
   seatsBooked Int           @default(1)
-  seatIds     Int[]         // e.g. [1] — which specific seat the passenger booked
-  status      BookingStatus @default(PENDING)
+  seatIds       Int[]         // e.g. [1] — which specific seat the passenger booked
+  passengerNote String?       @db.VarChar(500)
+  status        BookingStatus @default(PENDING)
   createdAt   DateTime      @default(now())
 
   ride      Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)

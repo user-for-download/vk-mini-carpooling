@@ -39,6 +39,7 @@ export async function createRide(driverId: string, input: CreateRideInput) {
       seatsAvailable: input.offeredSeats.length,
       offeredSeats: input.offeredSeats,
       price: input.price,
+      driverNote: input.driverNote || null,
     },
   });
 }

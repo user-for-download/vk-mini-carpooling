@@ -24,6 +24,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
   const [myBookings, setMyBookings] = useState<BookingDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
+  const [passengerNote, setPassengerNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,13 +45,16 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
 
   async function handleBook() {
     if (!ride || selectedSeats.length === 0) return;
+    if (!window.confirm(`Забронировать ${selectedSeats.length} мест(а)?`)) return;
+
     setLoading(true);
     setError(null);
     try {
-      await createBooking({ rideId: ride.id, seatIds: selectedSeats });
+      await createBooking({ rideId: ride.id, seatIds: selectedSeats, passengerNote: passengerNote || undefined });
       const updatedBookings = await listMyBookings();
       setMyBookings(updatedBookings);
       setSelectedSeats([]);
+      setPassengerNote('');
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось забронировать';
       setError(message);
@@ -62,6 +66,8 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
   async function handleCancel() {
     const booking = ride ? getBookingForRide(ride.id) : undefined;
     if (!booking) return;
+    if (!window.confirm('Вы уверены, что хотите отменить бронирование?')) return;
+
     setLoading(true);
     setError(null);
     try {
@@ -122,6 +128,8 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
           <TripCard
             ride={ride}
             selectedSeats={selectedSeats}
+            passengerNote={passengerNote}
+            onPassengerNoteChange={setPassengerNote}
             onSelectSeat={(seatId) => {
               setSelectedSeats((prev) =>
                 prev.includes(seatId)

@@ -785,6 +785,7 @@ export const RideScalarFieldEnum = {
   seatsAvailable: 'seatsAvailable',
   offeredSeats: 'offeredSeats',
   price: 'price',
+  driverNote: 'driverNote',
   status: 'status',
   createdAt: 'createdAt'
 } as const
@@ -798,6 +799,7 @@ export const BookingScalarFieldEnum = {
   passengerId: 'passengerId',
   seatsBooked: 'seatsBooked',
   seatIds: 'seatIds',
+  passengerNote: 'passengerNote',
   status: 'status',
   createdAt: 'createdAt'
 } as const

@@ -8,6 +8,7 @@ export type BookingStatus = z.infer<typeof BookingStatusSchema>;
 export const CreateBookingSchema = z.object({
   rideId: z.number().int(),
   seatIds: z.array(z.number().int()).min(1).max(5),
+  passengerNote: z.string().max(500).optional(),
 });
 export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
 
@@ -34,6 +35,7 @@ export const BookingDTOSchema = z.object({
   passengerId: z.string(),
   seatsBooked: z.number().int(),
   seatIds: z.array(z.number().int()),
+  passengerNote: z.string().nullable().optional(),
   status: BookingStatusSchema,
   ride: RideRefSchema.optional(),
 });

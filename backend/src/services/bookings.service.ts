@@ -88,6 +88,7 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
       passengerId,
       seatsBooked: input.seatIds.length,
       seatIds: input.seatIds,
+      passengerNote: input.passengerNote || null,
     },
   });
 }

@@ -29,6 +29,9 @@ pnpm-debug.log*
 *.swp
 *.swo
 *~
+.agents/
+.opencode/
+.mimocode/
 
 # OS
 .DS_Store

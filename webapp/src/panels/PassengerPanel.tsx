@@ -84,6 +84,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   }
 
   async function handleCancelBooking(bookingId: number) {
+    if (!window.confirm('Вы уверены, что хотите отменить бронирование?')) return;
     try {
       await cancelBookingApi(bookingId);
       const updatedBookings = await listMyBookings();
