@@ -20,9 +20,10 @@ import { createBooking, cancelBooking as cancelBookingApi, listMyBookings } from
 import { TripCard } from '../components/TripCard';
 import { useLocations } from '../hooks/useLocations';
 import { formatRideDateTime, formatPrice } from '../utils/format';
+import { SEATS } from '../utils/constants';
 import '../styles.css';
 
-type View = 'search' | 'results' | 'bookings';
+type View = 'search' | 'results';
 
 export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
@@ -61,7 +62,6 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   }, [fetchBookings]);
 
   async function handleSearch() {
-    // Abort any previous in-flight search
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -90,7 +90,6 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   async function handleBook(rideId: number) {
     const seats = selectedSeats[rideId] || [];
     if (seats.length === 0) return;
-    // Prevent double-click (M7)
     if (bookingLoading === rideId) return;
     setBookingLoading(rideId);
     setError(null);
@@ -117,7 +116,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
 
   async function handleCancelBooking(bookingId: number) {
     if (!window.confirm('Вы уверены, что хотите отменить бронирование?')) return;
-    setError(null); // Clear previous errors (L12)
+    setError(null);
     try {
       await cancelBookingApi(bookingId);
       const updatedBookings = await listMyBookings();
@@ -128,20 +127,13 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
     }
   }
 
-  async function showMyBookings() {
-    try {
-      const updatedBookings = await listMyBookings();
-      setMyBookings(updatedBookings);
-      setView('bookings');
-    } catch (err) {
-      console.error(err);
-      setError('Не удалось загрузить бронирования');
-    }
-  }
-
-  const activeBookingCount = myBookings.filter(
+  const activeBookings = myBookings.filter(
     (b) => b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED
-  ).length;
+  );
+
+  const historyBookings = myBookings.filter(
+    (b) => b.status === BOOKING_STATUS.REJECTED || b.status === BOOKING_STATUS.CANCELLED
+  );
 
   return (
     <PanelType {...props}>
@@ -165,7 +157,110 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
         </Div>
       )}
 
-      {/* Search View */}
+      {/* My Bookings Section - Always visible at top */}
+      <Div style={{ paddingBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Title level="3">Мои бронирования ({activeBookings.length}/{MAX_BOOKING_COUNT})</Title>
+          <Button
+            size="s"
+            mode="refresh"
+            onClick={fetchBookings}
+          >
+            Обновить
+          </Button>
+        </div>
+
+        {myBookings.length === 0 ? (
+          <Card mode="shadow" style={{ textAlign: 'center', padding: 20 }}>
+            <Text style={{ color: 'var(--vkui-color-text-secondary)' }}>
+              У вас пока нет бронирований
+            </Text>
+          </Card>
+        ) : (
+          <>
+            {/* Active bookings */}
+            {activeBookings.map((booking) => (
+              <Card
+                key={booking.id}
+                mode="shadow"
+                style={{ marginBottom: 8, cursor: 'pointer' }}
+                onClick={() => routeNavigator.push(`/ride/${booking.rideId}`)}
+              >
+                <Div style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={{ fontWeight: 500, marginBottom: 2 }}>
+                        {booking.ride?.from?.name} → {booking.ride?.to?.name}
+                      </Text>
+                      <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
+                        {booking.ride?.departureTime ? formatRideDateTime(booking.ride.departureTime) : '—'}
+                        {' · '}{booking.seatsBooked} мест · {booking.ride?.price != null ? formatPrice(booking.ride.price) : '—'}
+                      </Text>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                        <Text style={{
+                          fontSize: 12,
+                          color: booking.status === BOOKING_STATUS.APPROVED
+                            ? 'var(--vkui-color-text-positive)'
+                            : 'var(--vkui-color-text-secondary)',
+                        }}>
+                          {booking.status === BOOKING_STATUS.APPROVED ? 'Подтверждено' : 'Ожидает'}
+                        </Text>
+                        {booking.seatIds && booking.seatIds.length > 0 && (
+                          <Text style={{ fontSize: 11, color: 'var(--vkui-color-text-tertiary)' }}>
+                            ({booking.seatIds.map((id) => SEATS.find((s) => s.id === id)?.label).join(', ')})
+                          </Text>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="s"
+                      mode="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCancelBooking(booking.id);
+                      }}
+                    >
+                      Отменить
+                    </Button>
+                  </div>
+                </Div>
+              </Card>
+            ))}
+
+            {/* History bookings */}
+            {historyBookings.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <Text style={{ color: 'var(--vkui-color-text-tertiary)', fontSize: 12, marginBottom: 8 }}>
+                  История
+                </Text>
+                {historyBookings.slice(0, 5).map((booking) => (
+                  <Card key={booking.id} mode="shadow" style={{ marginBottom: 8, opacity: 0.6 }}>
+                    <Div style={{ padding: '10px 16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <Text style={{ fontSize: 13 }}>
+                            {booking.ride?.from?.name} → {booking.ride?.to?.name}
+                          </Text>
+                          <Text style={{
+                            fontSize: 11,
+                            color: booking.status === BOOKING_STATUS.REJECTED
+                              ? 'var(--vkui-color-text-negative)'
+                              : 'var(--vkui-color-text-tertiary)',
+                          }}>
+                            {booking.status === BOOKING_STATUS.REJECTED ? 'Отклонено' : 'Отменено'}
+                          </Text>
+                        </div>
+                      </div>
+                    </Div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </Div>
+
+      {/* Search Section */}
       {view === 'search' && (
         <Div>
           <Card mode="shadow">
@@ -173,21 +268,6 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
               <Title level="3" style={{ marginBottom: 16 }}>
                 Найти поездку
               </Title>
-
-              {/* Booking conditions */}
-              <div style={{
-                padding: 12,
-                background: 'var(--vkui-color-background-secondary)',
-                borderRadius: 8,
-                marginBottom: 16,
-              }}>
-                <Text style={{ fontWeight: 500, marginBottom: 8 }}>
-                  Ваши бронирования: {activeBookingCount} / {MAX_BOOKING_COUNT}
-                </Text>
-                <Text style={{ fontSize: 12, color: 'var(--vkui-color-text-secondary)' }}>
-                  Максимум {MAX_BOOKING_COUNT} активных бронирований. Выберите места на схеме автомобиля. Нельзя бронировать поездки на одно и то же время.
-                </Text>
-              </div>
 
               {locationsError && (
                 <Text style={{ color: 'var(--vkui-color-text-negative)', marginBottom: 12 }}>
@@ -242,16 +322,6 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
               </Button>
             </Div>
           </Card>
-
-          <Button
-            size="l"
-            stretched
-            mode="secondary"
-            onClick={showMyBookings}
-            style={{ marginTop: 12 }}
-          >
-            Мои бронирования ({activeBookingCount})
-          </Button>
         </Div>
       )}
 
@@ -326,87 +396,12 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                 size="l"
                 stretched
                 mode="secondary"
-                onClick={showMyBookings}
+                onClick={() => setView('search')}
                 style={{ marginTop: 12 }}
               >
-                Мои бронирования
+                Новый поиск
               </Button>
             </>
-          )}
-        </Div>
-      )}
-
-      {/* Bookings View */}
-      {view === 'bookings' && (
-        <Div style={{ paddingBottom: 100 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Title level="3">Мои бронирования</Title>
-            <Button
-              size="s"
-              mode="secondary"
-              onClick={() => setView('search')}
-            >
-              Назад
-            </Button>
-          </div>
-
-          {myBookings.length === 0 ? (
-            <Card mode="shadow" style={{ textAlign: 'center', padding: 40 }}>
-              <Title level="3" style={{ marginBottom: 8 }}>
-                Нет бронирований
-              </Title>
-              <Text style={{ color: 'var(--vkui-color-text-secondary)' }}>
-                Найдите поездку и забронируйте место
-              </Text>
-            </Card>
-          ) : (
-            myBookings.map((booking) => (
-              <Card key={booking.id} mode="shadow" style={{ marginBottom: 12 }}>
-                <Div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <Text style={{ fontWeight: 500 }}>
-                          {booking.ride?.from?.name} → {booking.ride?.to?.name}
-                        </Text>
-                      </div>
-                      <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-                        {booking.ride?.departureTime
-                          ? formatRideDateTime(booking.ride.departureTime)
-                          : '—'}
-                        {' · '}{booking.seatsBooked} мест · {booking.ride?.price != null ? formatPrice(booking.ride.price) : '—'}
-                      </Text>
-                      <Text style={{
-                        fontSize: 12,
-                        color: booking.status === BOOKING_STATUS.APPROVED
-                          ? 'var(--vkui-color-text-positive)'
-                          : booking.status === BOOKING_STATUS.REJECTED
-                          ? 'var(--vkui-color-text-negative)'
-                          : booking.status === BOOKING_STATUS.CANCELLED
-                          ? 'var(--vkui-color-text-tertiary)'
-                          : 'var(--vkui-color-text-secondary)',
-                        marginTop: 4,
-                      }}>
-                        {booking.status === BOOKING_STATUS.PENDING && 'Ожидает подтверждения'}
-                        {booking.status === BOOKING_STATUS.APPROVED && 'Подтверждено'}
-                        {booking.status === BOOKING_STATUS.REJECTED && 'Отклонено'}
-                        {booking.status === BOOKING_STATUS.CANCELLED && 'Отменено'}
-                      </Text>
-                    </div>
-
-                    {(booking.status === BOOKING_STATUS.PENDING || booking.status === BOOKING_STATUS.APPROVED) && (
-                      <Button
-                        size="s"
-                        mode="secondary"
-                        onClick={() => handleCancelBooking(booking.id)}
-                      >
-                        Отменить
-                      </Button>
-                    )}
-                  </div>
-                </Div>
-              </Card>
-            ))
           )}
         </Div>
       )}
