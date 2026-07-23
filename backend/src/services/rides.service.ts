@@ -26,7 +26,8 @@ export async function searchRides(filters: SearchRidesInput) {
     departureFilter = { gte: now };
   }
 
-  return prisma.ride.findMany({
+  // Find rides that have at least one offered seat not occupied by PENDING/APPROVED bookings
+  const rides = await prisma.ride.findMany({
     where: {
       status: RIDE_STATUS.ACTIVE,
       seatsAvailable: { gt: 0 },
@@ -34,9 +35,24 @@ export async function searchRides(filters: SearchRidesInput) {
       ...(filters.toId !== undefined ? { toId: filters.toId } : {}),
       departureTime: departureFilter,
     },
+    include: {
+      from: true,
+      to: true,
+      driver: true,
+      bookings: {
+        where: { status: { in: [BOOKING_STATUS.APPROVED, BOOKING_STATUS.PENDING] } },
+        select: { seatIds: true },
+      },
+    },
     orderBy: { departureTime: 'asc' },
-    include: { from: true, to: true, driver: true },
     take: 100,
+  });
+
+  // Filter out rides where all offered seats are occupied
+  return rides.filter((ride) => {
+    const occupiedSeats = new Set(ride.bookings.flatMap((b) => b.seatIds));
+    const hasAvailableSeat = ride.offeredSeats.some((seatId) => !occupiedSeats.has(seatId));
+    return hasAvailableSeat;
   });
 }
 
