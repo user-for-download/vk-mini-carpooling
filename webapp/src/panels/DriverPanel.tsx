@@ -134,7 +134,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
 
       {/* List View */}
       {view === 'list' && (
-        <Div>
+        <Div style={{ paddingBottom: 100 }}>
           {activeRides.length === 0 ? (
             <Card mode="shadow" style={{ textAlign: 'center', padding: 40 }}>
               <Title level="3" style={{ marginBottom: 8 }}>

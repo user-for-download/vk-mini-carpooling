@@ -48,6 +48,12 @@
   background: var(--vkui-color-background-secondary) !important;
 }
 
+/* Ensure panels scroll properly */
+.vkuiPanel__in {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
 .vkuiGroup {
   background: transparent !important;
   padding: 0 !important;

@@ -239,7 +239,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
 
       {/* Results View */}
       {view === 'results' && rides && (
-        <Div>
+        <Div style={{ paddingBottom: 100 }}>
           {rides.length === 0 ? (
             <Card mode="shadow" style={{ textAlign: 'center', padding: 40 }}>
               <Title level="3" style={{ marginBottom: 8 }}>
@@ -320,7 +320,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
 
       {/* Bookings View */}
       {view === 'bookings' && (
-        <Div>
+        <Div style={{ paddingBottom: 100 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Title level="3">Мои бронирования</Title>
             <Button
