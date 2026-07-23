@@ -30,7 +30,7 @@ export function RideDetailsPanel({ nav }: Props) {
   const params = useParams<'id'>();
   const rideId = params?.id ? Number(params.id) : null;
   
-  const { ride, setRide, notFound, isLoading: isRideLoading } = useRideDetails(rideId);
+  const { ride, setRide, notFound, networkError, isLoading: isRideLoading } = useRideDetails(rideId);
   const { bookings: myBookings, refetch: refetchBookings } = useMyBookings();
   
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,6 @@ export function RideDetailsPanel({ nav }: Props) {
   const [snackbar, setSnackbar] = useState<ReactElement | null>(null);
 
   function showErrorSnackbar(message?: string, retryAction?: () => void) {
-    if (snackbar) return;
     setSnackbar(
       <ErrorSnackbar
         text={message}
@@ -160,7 +159,7 @@ export function RideDetailsPanel({ nav }: Props) {
       <PanelHeader
         before={
           <PanelHeaderBack
-            onClick={() => !loading && routeNavigator.push('/passenger')}
+            onClick={() => { if (!loading) window.history.back(); }}
             style={{ opacity: loading ? 0.5 : 1, pointerEvents: loading ? 'none' : 'auto' }}
           />
         }
@@ -185,6 +184,20 @@ export function RideDetailsPanel({ nav }: Props) {
           }
         >
           Возможно, она уже завершена или отменена
+        </Placeholder>
+      )}
+
+      {networkError && !isRideLoading && (
+        <Placeholder
+          stretched
+          header="Ошибка загрузки"
+          action={
+            <Button size="m" mode="secondary" onClick={() => routeNavigator.push('/passenger')}>
+              К поиску
+            </Button>
+          }
+        >
+          Не удалось загрузить данные. Проверьте подключение к интернету.
         </Placeholder>
       )}
 

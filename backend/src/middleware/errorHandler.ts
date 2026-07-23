@@ -17,13 +17,14 @@ export const errorHandler: ErrorHandler = (err, c) => {
     }
 
     if (PRISMA_CLIENT_ERRORS.has(prismaErr.code)) {
-      return c.json(
-        { error: 'NOT_FOUND', message: 'Referenced record not found' },
-        404,
-      );
+      if (prismaErr.code === 'P2025') {
+        return c.json({ error: 'NOT_FOUND', message: 'Referenced record not found' }, 404);
+      }
+      return c.json({ error: 'VALIDATION_ERROR', message: 'Data integrity constraint violated' }, 400);
     }
   }
 
   console.error('[ERROR]', err instanceof Error ? err.stack ?? err.message : err);
-  return c.json({ error: 'Internal server error', message: err instanceof Error ? err.message : String(err) }, 500);
+  const message = process.env.NODE_ENV === 'production' ? 'Internal server error' : (err instanceof Error ? err.message : String(err));
+  return c.json({ error: 'Internal server error', message }, 500);
 };

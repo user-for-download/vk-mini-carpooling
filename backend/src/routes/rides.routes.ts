@@ -14,7 +14,7 @@ const STATUS_BY_ERROR_CODE = {
 
 ridesRoutes.onError((err, c) => {
   if (err instanceof RideError) {
-    return c.json({ error: err.code, message: err.message }, STATUS_BY_ERROR_CODE[err.code]);
+    return c.json({ error: err.code, message: err.message }, STATUS_BY_ERROR_CODE[err.code] ?? 500);
   }
   throw err;
 });

@@ -19,25 +19,25 @@ export function PassengerPanel({ nav }: { nav: string }) {
   const confirm = useConfirm();
   const { bookings: myBookings, isLoading: isBookingsLoading, error: initialLoadError, refetch: refetchBookings } = useMyBookings();
 
-  const savedState = (() => {
+  const [savedState] = useState<Record<string, unknown>>(() => {
     try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
-  })();
+  });
 
-  const [view, setView] = useState<View>(savedState.view || 'search');
-  const [fromId, setFromId] = useState<string>(savedState.fromId || '');
-  const [toId, setToId] = useState<string>(savedState.toId || '');
-  const [date, setDate] = useState<string>(savedState.date || '');
-  const [rides, setRides] = useState<RideDTO[] | null>(savedState.rides || null);
+  const [view, setView] = useState<View>((savedState.view as View) || 'search');
+  const [fromId, setFromId] = useState<string>((savedState.fromId as string) || '');
+  const [toId, setToId] = useState<string>((savedState.toId as string) || '');
+  const [date, setDate] = useState<string>((savedState.date as string) || '');
+  const [rides, setRides] = useState<RideDTO[] | null>((savedState.rides as RideDTO[]) || null);
   
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<ReactElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const showErrorSnackbar = (msg?: string) => {
-    if (!snackbar) setSnackbar(<ErrorSnackbar text={msg} onClose={() => setSnackbar(null)} />);
+    setSnackbar(<ErrorSnackbar text={msg} onClose={() => setSnackbar(null)} />);
   };
 
-  const saveState = useCallback((newState: any) => {
+  const saveState = useCallback((newState: Record<string, unknown>) => {
     try {
       const current = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...newState }));

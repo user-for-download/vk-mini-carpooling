@@ -133,25 +133,10 @@
   }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.fade-in {
-  animation: fadeIn 0.3s ease forwards;
-}
-
 /* Responsive adjustments */
 @media (max-width: 375px) {
   .vkuiDiv {
     padding-left: 12px !important;
     padding-right: 12px !important;
-  }
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .fade-in {
-    animation: none;
   }
 }

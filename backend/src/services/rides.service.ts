@@ -126,8 +126,8 @@ export async function getRideById(id: number, requesterId: string) {
   if (ride.driverId !== requesterId) {
     ride.bookings = ride.bookings.map((b) => {
       if (b.status === BOOKING_STATUS.PENDING && b.passengerId !== requesterId) {
-        const { passenger, passengerNote, ...rest } = b;
-        return rest as any;
+        const { passenger: _p, passengerNote: _n, ...rest } = b;
+        return rest as typeof ride.bookings[number];
       }
       return b;
     });

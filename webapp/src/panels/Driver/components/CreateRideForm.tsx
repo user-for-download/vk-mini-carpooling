@@ -1,12 +1,13 @@
 import { useState, useContext } from 'react';
 import { Div, Card, Title, Button, FormItem, Select, Input, Textarea, Text } from '@vkontakte/vkui';
+import type { CreateRideInput } from '@local-blablacar/contracts';
 import { DataContext } from '../../../context/dataContext';
 import { CarSeatMap } from '../../../components/CarSeatMap';
 import { SEATS } from '../../../utils/constants';
 
 interface Props {
   onBack: () => void;
-  onSubmit: (formData: any) => void;
+  onSubmit: (formData: CreateRideInput) => void;
   loading: boolean;
 }
 

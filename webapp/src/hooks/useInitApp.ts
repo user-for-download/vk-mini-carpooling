@@ -40,15 +40,14 @@ export function useInitApp() {
         const locations = await listLocations();
 
         // 3. Update Global Context
-        ctx.setData((prev) => ({
-          ...prev,
+        ctx.updateData({
           locations,
           isReady: true,
-        }));
+        });
       } catch (err) {
         console.error('Failed to init app:', err);
         // Allow the app to render even if init fails
-        ctx.setData((prev) => ({ ...prev, isReady: true }));
+        ctx.setReady(true);
       }
     };
 

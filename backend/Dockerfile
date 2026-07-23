@@ -26,6 +26,7 @@ COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages/contracts ./packages/contracts
 COPY --from=builder /app/src ./src
 
 EXPOSE 3000

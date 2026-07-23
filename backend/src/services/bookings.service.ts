@@ -48,7 +48,20 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
         if (existingBooking.status === BOOKING_STATUS.PENDING || existingBooking.status === BOOKING_STATUS.APPROVED) {
           throw new BookingError('ALREADY_PROCESSED', 'You already have an active booking for this ride');
         }
-        // Reuse the cancelled/rejected booking record safely, refresh createdAt
+        // Reuse the cancelled/rejected booking record — but first validate seats
+        const reusedBlockingBookings = await tx.booking.findMany({
+          where: { rideId: ride.id, status: { in: [BOOKING_STATUS.APPROVED, BOOKING_STATUS.PENDING] } },
+        });
+        const reusedTakenSeats = new Set(reusedBlockingBookings.flatMap((b) => b.seatIds));
+        if (input.seatIds.some((id) => reusedTakenSeats.has(id))) {
+          throw new BookingError('NO_SEATS', 'One or more selected seats are already taken or pending');
+        }
+        if (ride.offeredSeats.length > 0) {
+          const reusedInvalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
+          if (reusedInvalidSeats.length > 0) {
+            throw new BookingError('NO_SEATS', 'Selected seats are not offered on this ride');
+          }
+        }
         return tx.booking.update({
           where: { id: existingBooking.id },
           data: {
@@ -62,11 +75,9 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
       }
 
       // 2. Verify selected seats are actually offered by the driver
-      if (ride.offeredSeats.length > 0) {
-        const invalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
-        if (invalidSeats.length > 0) {
-          throw new BookingError('NO_SEATS', 'Selected seats are not offered on this ride');
-        }
+      const invalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
+      if (invalidSeats.length > 0) {
+        throw new BookingError('NO_SEATS', 'Selected seats are not offered on this ride');
       }
 
       // 3. Prevent booking seats that are already APPROVED or PENDING for another passenger
@@ -96,7 +107,7 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
         );
       }
 
-      // 4. Check for time conflict (overlapping rides)
+      // 5. Check for time conflict (overlapping rides)
       const CONFLICT_WINDOW_MS = 4 * 60 * 60 * 1000;
       const conflictWindowStart = new Date(ride.departureTime.getTime() - CONFLICT_WINDOW_MS);
       const conflictWindowEnd = new Date(ride.departureTime.getTime() + CONFLICT_WINDOW_MS);
@@ -181,10 +192,13 @@ export async function updateBookingStatus(input: {
           throw new BookingError('NO_SEATS', 'These seats were already approved for another passenger');
         }
 
-        await tx.ride.update({
+        const updated = await tx.ride.updateMany({
           where: { id: booking.rideId, seatsAvailable: { gte: booking.seatsBooked } },
           data: { seatsAvailable: { decrement: booking.seatsBooked } },
         });
+        if (updated.count === 0) {
+          throw new BookingError('NO_SEATS', 'Not enough seats available (concurrent modification)');
+        }
       }
 
       if (input.status === BOOKING_STATUS.REJECTED) {
@@ -210,6 +224,7 @@ export async function listMyBookings(passengerId: string) {
       { status: 'asc' },
       { createdAt: 'desc' },
     ],
+    take: 200,
     include: { ride: { include: { from: true, to: true, driver: true } } },
   });
 }
@@ -282,11 +297,9 @@ export async function updateBooking(passengerId: string, bookingId: number, inpu
       const ride = booking.ride;
 
       // 1. Verify selected seats are actually offered
-      if (ride.offeredSeats.length > 0) {
-        const invalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
-        if (invalidSeats.length > 0) {
-          throw new BookingError('NO_SEATS', 'Selected seats are not offered on this ride');
-        }
+      const invalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
+      if (invalidSeats.length > 0) {
+        throw new BookingError('NO_SEATS', 'Selected seats are not offered on this ride');
       }
 
       // 2. Prevent booking seats already approved or pending for another passenger

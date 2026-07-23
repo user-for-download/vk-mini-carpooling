@@ -17,9 +17,9 @@ export async function ensureUser(input: {
     where: { id: input.id },
     update: {
       lastPlatform: input.platform,
-      ...(input.firstName && { firstName: input.firstName }),
-      ...(input.lastName && { lastName: input.lastName }),
-      ...(input.photoUrl && { photoUrl: input.photoUrl }),
+      ...(input.firstName !== undefined && input.firstName !== '' && { firstName: input.firstName }),
+      ...(input.lastName !== undefined && input.lastName !== '' && { lastName: input.lastName }),
+      ...(input.photoUrl !== undefined && { photoUrl: input.photoUrl }),
     },
     create: {
       id: input.id,

@@ -50,9 +50,9 @@ export function PassengerBookings({ bookings, isLoading, onRefresh, onCancelClic
                 key={booking.id}
                 ride={{
                   id: booking.rideId,
-                  price: booking.ride?.price || 0,
-                  seatsAvailable: booking.ride?.seatsAvailable || 0,
-                  departureTime: booking.ride?.departureTime || '',
+                  price: booking.ride?.price ?? 0,
+                  seatsAvailable: booking.ride?.seatsAvailable ?? 0,
+                  departureTime: booking.ride?.departureTime ?? '',
                   from: booking.ride?.from,
                   to: booking.ride?.to,
                   bookings: [{ id: booking.id, status: booking.status, seatsBooked: booking.seatsBooked, seatIds: booking.seatIds }],

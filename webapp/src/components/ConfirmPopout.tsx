@@ -20,7 +20,6 @@ export function useConfirm() {
 
   return ({ title, text, onConfirm, confirmText = 'Подтвердить' }: ConfirmOptions) => {
     if (isDev) {
-      // Use native browser confirm in dev mode
       const message = `${title}\n\n${text}`;
       if (window.confirm(message)) {
         onConfirm();
@@ -29,27 +28,27 @@ export function useConfirm() {
     }
 
     // Use VKUI Alert in VK Mini App
-    // routeNavigator.showPopout(
-    //   <Alert
-    //     actions={[
-    //       {
-    //         title: confirmText,
-    //         mode: 'destructive',
-    //         action: () => {
-    //           onConfirm();
-    //           routeNavigator.hidePopout();
-    //         },
-    //       },
-    //       {
-    //         title: 'Отмена',
-    //         mode: 'cancel',
-    //       },
-    //     ]}
-    //     actionsLayout="horizontal"
-    //     onClose={() => routeNavigator.hidePopout()}
-    //     header={title}
-    //     text={text}
-    //   />
-    // );
+    routeNavigator.showPopout(
+      <Alert
+        actions={[
+          {
+            title: confirmText,
+            mode: 'destructive',
+            action: () => {
+              onConfirm();
+              routeNavigator.hidePopout();
+            },
+          },
+          {
+            title: 'Отмена',
+            mode: 'cancel',
+          },
+        ]}
+        actionsLayout="horizontal"
+        onClose={() => routeNavigator.hidePopout()}
+        header={title}
+        text={text}
+      />
+    );
   };
 }

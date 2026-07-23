@@ -1,7 +1,7 @@
-import { useState, type ReactElement } from 'react';
+import { useState, useEffect, type ReactElement } from 'react';
 import { Panel, PanelHeader, PanelHeaderBack, Spinner } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import type { RideDTO } from '@local-blablacar/contracts';
+import type { RideDTO, CreateRideInput } from '@local-blablacar/contracts';
 import { createRide, cancelRide as cancelRideApi } from '../../api/rides';
 import { updateBookingStatus } from '../../api/bookings';
 import { useConfirm } from '../../components/ConfirmPopout';
@@ -18,15 +18,23 @@ export function DriverPanel({ nav }: { nav: string }) {
   const [view, setView] = useState<'list' | 'create' | 'detail'>('list');
   const [selectedRide, setSelectedRide] = useState<RideDTO | null>(null);
   
+  // Sync selectedRide with fresh data after refetch
+  useEffect(() => {
+    if (selectedRide) {
+      const fresh = myRides.find((r) => r.id === selectedRide.id);
+      if (fresh) setSelectedRide(fresh);
+    }
+  }, [myRides]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [loading, setLoading] = useState(false);
   const [decisionLoading, setDecisionLoading] = useState<number | null>(null);
   const [snackbar, setSnackbar] = useState<ReactElement | null>(null);
 
   const showErrorSnackbar = (msg?: string, retry?: () => void) => {
-    if (!snackbar) setSnackbar(<ErrorSnackbar text={msg} onClose={() => setSnackbar(null)} action={retry} />);
+    setSnackbar(<ErrorSnackbar text={msg} onClose={() => setSnackbar(null)} action={retry} />);
   };
 
-  const processCreate = async (formData: any) => {
+  const processCreate = async (formData: CreateRideInput) => {
     setLoading(true);
     try {
       await createRide(formData);
@@ -55,10 +63,6 @@ export function DriverPanel({ nav }: { nav: string }) {
     try {
       await updateBookingStatus(bookingId, { status });
       await refetch();
-      if (selectedRide) {
-        const fresh = myRides.find((r) => r.id === selectedRide.id);
-        if (fresh) setSelectedRide(fresh);
-      }
     } catch (err: any) {
       showErrorSnackbar(err.response?.data?.message || 'Не удалось обработать заявку');
     } finally {

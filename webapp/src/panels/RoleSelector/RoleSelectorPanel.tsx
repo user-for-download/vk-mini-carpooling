@@ -1,4 +1,4 @@
-import { Panel, PanelHeader, Title, Text, Button, Card, Div } from '@vkontakte/vkui';
+import { Panel, PanelHeader, Title, Text, Card, Div } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import '../../styles.css';
 

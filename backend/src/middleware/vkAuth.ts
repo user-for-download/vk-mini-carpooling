@@ -77,7 +77,8 @@ export const vkAuthMiddleware = createMiddleware<{ Variables: Variables }>(async
   // Extract vk_ts from raw params
   const tsParam = params.find((p) => p.startsWith('vk_ts='));
   const vkTs = tsParam ? tsParam.slice('vk_ts='.length) : null;
-  if (!vkTs || Math.floor(Date.now() / 1000) - parseInt(vkTs, 10) > MAX_LAUNCH_PARAMS_AGE_SECONDS) {
+  const ts = parseInt(vkTs ?? '', 10);
+  if (!vkTs || Number.isNaN(ts) || Math.floor(Date.now() / 1000) - ts > MAX_LAUNCH_PARAMS_AGE_SECONDS) {
     return c.json({ error: 'Launch params expired' }, 401);
   }
 

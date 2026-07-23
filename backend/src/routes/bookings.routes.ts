@@ -23,7 +23,7 @@ const validationHandler = (result: { success: boolean; error?: { issues: Array<{
 
 bookingsRoutes.onError((err, c) => {
   if (err instanceof BookingError) {
-    return c.json({ error: err.code, message: err.message }, STATUS_BY_ERROR_CODE[err.code]);
+    return c.json({ error: err.code, message: err.message }, STATUS_BY_ERROR_CODE[err.code] ?? 500);
   }
   throw err;
 });
