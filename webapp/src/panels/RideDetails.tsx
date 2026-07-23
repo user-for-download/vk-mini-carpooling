@@ -73,8 +73,9 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     setError(null);
     try {
       await createBooking({ rideId: ride.id, seatIds: selectedSeats, passengerNote: passengerNote || undefined });
-      const updatedBookings = await listMyBookings();
+      const [updatedBookings, updatedRide] = await Promise.all([listMyBookings(), getRide(ride.id)]);
       setMyBookings(updatedBookings);
+      setRide(updatedRide);
       setSelectedSeats([]);
       setPassengerNote('');
     } catch (err: any) {
@@ -94,8 +95,9 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     setError(null);
     try {
       await cancelBookingApi(booking.id);
-      const updatedBookings = await listMyBookings();
+      const [updatedBookings, updatedRide] = await Promise.all([listMyBookings(), getRide(ride.id)]);
       setMyBookings(updatedBookings);
+      setRide(updatedRide);
       setIsEditing(false);
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось отменить';
@@ -123,8 +125,9 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     setError(null);
     try {
       await updateBookingApi(booking.id, { seatIds: selectedSeats, passengerNote: passengerNote || undefined });
-      const updatedBookings = await listMyBookings();
+      const [updatedBookings, updatedRide] = await Promise.all([listMyBookings(), getRide(ride.id)]);
       setMyBookings(updatedBookings);
+      setRide(updatedRide);
       setIsEditing(false);
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось изменить бронирование';

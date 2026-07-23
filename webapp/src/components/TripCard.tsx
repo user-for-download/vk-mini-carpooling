@@ -112,7 +112,7 @@ export function TripCard({
             occupiedSeats={occupiedSeats}
             offeredSeats={ride.offeredSeats}
             onSelectSeat={onSelectSeat}
-            mode={mode === 'passenger' && !isBooked ? 'select' : 'view'}
+            mode={mode === 'passenger' && (!isBooked || isEditing) ? 'select' : 'view'}
           />
         </div>
 

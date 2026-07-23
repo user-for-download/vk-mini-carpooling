@@ -42,6 +42,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
     driverNote: '',
   });
   const [loading, setLoading] = useState(false);
+  const [decisionLoading, setDecisionLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ignoreRef = useRef(false);
 
@@ -86,13 +87,16 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   }
 
   async function handleDecision(bookingId: number, status: typeof BOOKING_STATUS.APPROVED | typeof BOOKING_STATUS.REJECTED) {
-    setError(null); // Clear previous errors (L13)
+    setDecisionLoading(bookingId);
+    setError(null);
     try {
       await updateBookingStatus(bookingId, { status });
       await refresh();
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось обработать заявку';
       setError(message);
+    } finally {
+      setDecisionLoading(null);
     }
   }
 
@@ -196,7 +200,9 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                       }}
                     >
                       <div>
-                        <Text style={{ fontWeight: 500 }}>Заявка: {booking.passengerId}</Text>
+                        <Text style={{ fontWeight: 500 }}>
+                          Заявка: {booking.passenger?.firstName} {booking.passenger?.lastName}
+                        </Text>
                         <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
                           {booking.seatsBooked} мест ({(booking.seatIds || []).map((id) => SEATS.find((s) => s.id === id)?.label).join(', ')})
                         </Text>
@@ -212,13 +218,15 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                           mode="primary"
                           appearance="positive"
                           onClick={() => handleDecision(booking.id, BOOKING_STATUS.APPROVED)}
+                          disabled={decisionLoading === booking.id}
                         >
-                          Да
+                          {decisionLoading === booking.id ? '...' : 'Да'}
                         </Button>
                         <Button
                           size="s"
                           mode="secondary"
                           onClick={() => handleDecision(booking.id, BOOKING_STATUS.REJECTED)}
+                          disabled={decisionLoading === booking.id}
                         >
                           Отклонить
                         </Button>
@@ -336,7 +344,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                 mode="primary"
                 appearance="positive"
                 onClick={handleCreate}
-                disabled={loading || form.offeredSeats.length === 0}
+                disabled={loading || form.offeredSeats.length === 0 || !form.fromId || !form.toId || !form.departureTime}
               >
                 {loading ? 'Создание...' : 'Опубликовать'}
               </Button>

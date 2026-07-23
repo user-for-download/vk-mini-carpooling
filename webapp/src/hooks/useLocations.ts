@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import type { LocationDTO } from '@local-blablacar/contracts';
 import { listLocations } from '../api/locations';
 
@@ -13,28 +13,27 @@ export function useLocations(): UseLocationsResult {
   const [locations, setLocations] = useState<LocationDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const ignoreRef = useRef(false);
 
   useEffect(() => {
-    ignoreRef.current = false;
+    let ignore = false;
     setLoading(true);
     listLocations()
       .then((data) => {
-        if (!ignoreRef.current) {
+        if (!ignore) {
           setLocations(data);
           setError(null);
         }
       })
       .catch((err) => {
-        if (!ignoreRef.current) {
+        if (!ignore) {
           setError('Не удалось загрузить точки');
           console.error(err);
         }
       })
       .finally(() => {
-        if (!ignoreRef.current) setLoading(false);
+        if (!ignore) setLoading(false);
       });
-    return () => { ignoreRef.current = true; };
+    return () => { ignore = true; };
   }, []);
 
   return { locations, loading, error };

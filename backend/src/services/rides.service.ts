@@ -13,15 +13,13 @@ export class RideError extends Error {
 
 export async function searchRides(filters: SearchRidesInput) {
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Build departure time filter
+  // Build departure time filter - compare in UTC to avoid timezone issues
   let departureFilter: { gte: Date; lt?: Date };
   if (filters.date) {
     const requestedDate = new Date(`${filters.date}T00:00:00.000Z`);
-    const isToday = requestedDate.getTime() === today.getTime();
     departureFilter = {
-      gte: isToday ? now : requestedDate, // If today, use current time; otherwise midnight
+      gte: requestedDate > now ? requestedDate : now,
       lt: new Date(`${filters.date}T23:59:59.999Z`),
     };
   } else {
@@ -31,24 +29,21 @@ export async function searchRides(filters: SearchRidesInput) {
   return prisma.ride.findMany({
     where: {
       status: RIDE_STATUS.ACTIVE,
-      seatsAvailable: { gt: 0 }, // Hide full rides from search
+      seatsAvailable: { gt: 0 },
       ...(filters.fromId !== undefined ? { fromId: filters.fromId } : {}),
       ...(filters.toId !== undefined ? { toId: filters.toId } : {}),
       departureTime: departureFilter,
     },
     orderBy: { departureTime: 'asc' },
     include: { from: true, to: true, driver: true },
-    // Limit results to prevent unbounded queries
     take: 100,
   });
 }
 
 export async function createRide(driverId: string, input: CreateRideInput) {
-  // Verify user exists before creating ride (prevents P2003 foreign key crash)
   const user = await prisma.user.findUnique({ where: { id: driverId } });
   if (!user) throw new RideError('NOT_FOUND', 'User not found. Call POST /init first.');
 
-  // Verify locations exist
   const [fromLoc, toLoc] = await Promise.all([
     prisma.location.findUnique({ where: { id: input.fromId } }),
     prisma.location.findUnique({ where: { id: input.toId } }),
@@ -77,7 +72,11 @@ export async function getRideById(id: number) {
       from: true,
       to: true,
       driver: true,
-      bookings: { include: { passenger: true } },
+      // Only return approved bookings to prevent data leak
+      bookings: {
+        where: { status: BOOKING_STATUS.APPROVED },
+        include: { passenger: true },
+      },
     },
   });
 }
@@ -89,7 +88,11 @@ export async function listMyRides(driverId: string) {
     include: {
       from: true,
       to: true,
-      bookings: { include: { passenger: true } },
+      // Only return approved bookings for driver view
+      bookings: {
+        where: { status: BOOKING_STATUS.APPROVED },
+        include: { passenger: true },
+      },
     },
     take: 200,
   });
@@ -102,7 +105,7 @@ export async function cancelRide(driverId: string, rideId: number) {
     if (ride.driverId !== driverId) throw new RideError('FORBIDDEN', 'Only the ride owner can cancel');
     if (ride.status !== RIDE_STATUS.ACTIVE) throw new RideError('NOT_ACTIVE', 'Only active rides can be cancelled');
 
-    // Cascade: cancel all pending/approved bookings when ride is cancelled (H3, H6)
+    // Cascade: cancel all pending/approved bookings when ride is cancelled
     await tx.booking.updateMany({
       where: { rideId, status: { in: [BOOKING_STATUS.PENDING, BOOKING_STATUS.APPROVED] } },
       data: { status: BOOKING_STATUS.CANCELLED },

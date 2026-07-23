@@ -15,7 +15,6 @@ import { prisma, env } from '../runtime';
  * Exact seat validation is done via:
  * 1. Checking `seatIds` against `offeredSeats` (are these seats available?)
  * 2. Checking `seatIds` against already APPROVED/PENDING bookings (is anyone else using them?)
- * 3. Checking `seatsAvailable` as a fast capacity guard
  */
 
 export class BookingError extends Error {
@@ -28,11 +27,8 @@ export class BookingError extends Error {
 }
 
 export async function createBooking(passengerId: string, input: CreateBookingInput) {
-  // Wrap the entire booking creation in a transaction with serializable isolation
-  // to prevent TOCTOU race conditions (C1) and double-booking.
   return prisma.$transaction(
     async (tx) => {
-      // 0. Lock the ride row to prevent concurrent modifications
       const ride = await tx.ride.findUnique({
         where: { id: input.rideId },
       });
@@ -60,11 +56,15 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
         throw new BookingError('NO_SEATS', 'One or more selected seats are already taken or pending');
       }
 
-      // 3. Check max booking count
+      // 3. Check max booking count (only future/active rides)
       const activeBookingCount = await tx.booking.count({
         where: {
           passengerId,
           status: { in: [BOOKING_STATUS.PENDING, BOOKING_STATUS.APPROVED] },
+          ride: {
+            status: RIDE_STATUS.ACTIVE,
+            departureTime: { gte: new Date() },
+          },
         },
       });
       if (activeBookingCount >= env.MAX_BOOKING_COUNT) {
@@ -74,8 +74,7 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
         );
       }
 
-      // 5. Check for time conflict (overlapping rides)
-      // Symmetrical 4-hour window (2h ride duration + 2h buffer)
+      // 4. Check for time conflict (overlapping rides)
       const CONFLICT_WINDOW_MS = 4 * 60 * 60 * 1000;
       const conflictWindowStart = new Date(ride.departureTime.getTime() - CONFLICT_WINDOW_MS);
       const conflictWindowEnd = new Date(ride.departureTime.getTime() + CONFLICT_WINDOW_MS);
@@ -99,7 +98,7 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
         );
       }
 
-      // 6. Check if passenger already has a record (to avoid Prisma unique constraint crash)
+      // 5. Check if passenger already has a record (to avoid Prisma unique constraint crash)
       const existingBooking = await tx.booking.findUnique({
         where: { rideId_passengerId: { rideId: ride.id, passengerId } },
       });
@@ -108,7 +107,7 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
         if (existingBooking.status === BOOKING_STATUS.PENDING || existingBooking.status === BOOKING_STATUS.APPROVED) {
           throw new BookingError('ALREADY_PROCESSED', 'You already have an active booking for this ride');
         }
-        // Reuse the cancelled/rejected booking record safely
+        // Reuse the cancelled/rejected booking record safely, refresh createdAt
         return tx.booking.update({
           where: { id: existingBooking.id },
           data: {
@@ -116,6 +115,7 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
             seatsBooked: input.seatIds.length,
             seatIds: input.seatIds,
             passengerNote: input.passengerNote || null,
+            createdAt: new Date(),
           }
         });
       }
@@ -145,7 +145,6 @@ export async function updateBookingStatus(input: {
 }) {
   return prisma.$transaction(
     async (tx) => {
-      // Lock the booking row to prevent concurrent approval races (H1)
       const booking = await tx.booking.findUnique({
         where: { id: input.bookingId },
         include: { ride: true },
@@ -154,8 +153,9 @@ export async function updateBookingStatus(input: {
       if (booking.ride.driverId !== input.driverId) {
         throw new BookingError('FORBIDDEN', 'Only the ride owner can update this booking');
       }
-      if (booking.status === BOOKING_STATUS.REJECTED) {
-        throw new BookingError('ALREADY_PROCESSED', 'Cannot update a rejected booking');
+      // Block updates to terminal states (REJECTED, CANCELLED)
+      if (booking.status === BOOKING_STATUS.REJECTED || booking.status === BOOKING_STATUS.CANCELLED) {
+        throw new BookingError('ALREADY_PROCESSED', 'Cannot update a rejected or cancelled booking');
       }
 
       if (input.status === BOOKING_STATUS.APPROVED) {
@@ -207,7 +207,7 @@ export async function listMyBookings(passengerId: string) {
 
 /**
  * Cancel a booking. Passengers can cancel PENDING or APPROVED bookings.
- * If cancelling an APPROVED booking, seats are restored.
+ * If cancelling an APPROVED booking on an active ride, seats are restored.
  */
 export async function cancelBooking(passengerId: string, bookingId: number) {
   return prisma.$transaction(
@@ -227,13 +227,14 @@ export async function cancelBooking(passengerId: string, bookingId: number) {
         throw new BookingError('ALREADY_PROCESSED', 'Booking is already cancelled');
       }
 
-      // If cancelling an approved booking, restore seats
-      if (booking.status === BOOKING_STATUS.APPROVED) {
+      // Only restore seats if the ride is still active and in the future
+      if (booking.status === BOOKING_STATUS.APPROVED && booking.ride.status === RIDE_STATUS.ACTIVE && booking.ride.departureTime > new Date()) {
         await tx.ride.update({
           where: { id: booking.rideId },
           data: { seatsAvailable: { increment: booking.seatsBooked } },
         });
       }
+
       // Soft-delete: mark as CANCELLED instead of removing the record
       return tx.booking.update({
         where: { id: bookingId },
@@ -273,12 +274,12 @@ export async function updateBooking(passengerId: string, bookingId: number, inpu
         }
       }
 
-      // 3. Prevent booking seats already approved or pending for another passenger
+      // 2. Prevent booking seats already approved or pending for another passenger
       const blockingBookings = await tx.booking.findMany({
         where: {
           rideId: ride.id,
           status: { in: [BOOKING_STATUS.APPROVED, BOOKING_STATUS.PENDING] },
-          id: { not: bookingId }, // Exclude the current booking we are updating!
+          id: { not: bookingId },
         },
       });
       const takenSeats = new Set(blockingBookings.flatMap((b) => b.seatIds));
@@ -286,12 +287,15 @@ export async function updateBooking(passengerId: string, bookingId: number, inpu
         throw new BookingError('NO_SEATS', 'One or more selected seats are already taken or pending');
       }
 
+      // Use strict undefined check to allow null (clearing the note)
+      const updatedNote = input.passengerNote !== undefined ? input.passengerNote : booking.passengerNote;
+
       return tx.booking.update({
         where: { id: bookingId },
         data: {
           seatIds: input.seatIds,
           seatsBooked: input.seatIds.length,
-          passengerNote: input.passengerNote ?? booking.passengerNote,
+          passengerNote: updatedNote,
         },
       });
     },

@@ -23,7 +23,7 @@ export type UpdateBookingStatusInput = z.infer<typeof UpdateBookingStatusSchema>
 export const UpdateBookingSchema = z.object({
   seatIds: z.array(z.number().int().positive()).min(1).max(5)
     .refine((ids) => new Set(ids).size === ids.length, 'Места не могут повторяться'),
-  passengerNote: z.string().max(500).optional(),
+  passengerNote: z.string().max(500).nullable().optional(),
 });
 export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;
 

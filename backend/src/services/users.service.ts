@@ -15,7 +15,12 @@ export async function ensureUser(input: {
 }) {
   return prisma.user.upsert({
     where: { id: input.id },
-    update: { lastPlatform: input.platform },
+    update: {
+      lastPlatform: input.platform,
+      ...(input.firstName && { firstName: input.firstName }),
+      ...(input.lastName && { lastName: input.lastName }),
+      ...(input.photoUrl && { photoUrl: input.photoUrl }),
+    },
     create: {
       id: input.id,
       firstName: input.firstName ?? 'VK',
