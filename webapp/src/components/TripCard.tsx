@@ -104,6 +104,15 @@ export function TripCard({
           )}
         </div>
 
+        {/* No seats available warning */}
+        {mode === 'passenger' && !isBooked && occupiedSeats.length > 0 && ride.offeredSeats.every((s) => occupiedSeats.some((o) => o.seatId === s)) && (
+          <div style={{ padding: 12, background: 'var(--vkui-color-background-secondary)', borderRadius: 8, marginBottom: 16 }}>
+            <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13, textAlign: 'center' }}>
+              Нет свободных мест
+            </Text>
+          </div>
+        )}
+
         {/* Car seat map */}
         <div style={{ marginBottom: 16 }}>
           <CarSeatMap
