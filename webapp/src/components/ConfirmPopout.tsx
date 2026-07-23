@@ -1,45 +1,55 @@
 import { Alert } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 
-interface Props {
+interface ConfirmOptions {
   title: string;
   text: string;
   onConfirm: () => void;
   confirmText?: string;
-  cancelText?: string;
 }
 
-export function ConfirmPopout({
-  title,
-  text,
-  onConfirm,
-  confirmText = 'Подтвердить',
-  cancelText = 'Отмена',
-}: Props) {
+/**
+ * Shows a confirmation dialog.
+ * In dev mode (non-VK), uses window.confirm for simplicity.
+ * In VK Mini App, uses VKUI Alert via router popout.
+ */
+export function useConfirm() {
   const routeNavigator = useRouteNavigator();
 
-  const handleConfirm = () => {
-    onConfirm();
-    routeNavigator.hidePopout();
-  };
+  const isDev = import.meta.env.DEV && !window.location.search.includes('vk_user_id');
 
-  return (
-    <Alert
-      actions={[
-        {
-          title: confirmText,
-          mode: 'destructive',
-          action: handleConfirm,
-        },
-        {
-          title: cancelText,
-          mode: 'cancel',
-        },
-      ]}
-      actionsLayout="horizontal"
-      onClose={() => routeNavigator.hidePopout()}
-      header={title}
-      text={text}
-    />
-  );
+  return ({ title, text, onConfirm, confirmText = 'Подтвердить' }: ConfirmOptions) => {
+    if (isDev) {
+      // Use native browser confirm in dev mode
+      const message = `${title}\n\n${text}`;
+      if (window.confirm(message)) {
+        onConfirm();
+      }
+      return;
+    }
+
+    // Use VKUI Alert in VK Mini App
+    routeNavigator.showPopout(
+      <Alert
+        actions={[
+          {
+            title: confirmText,
+            mode: 'destructive',
+            action: () => {
+              onConfirm();
+              routeNavigator.hidePopout();
+            },
+          },
+          {
+            title: 'Отмена',
+            mode: 'cancel',
+          },
+        ]}
+        actionsLayout="horizontal"
+        onClose={() => routeNavigator.hidePopout()}
+        header={title}
+        text={text}
+      />
+    );
+  };
 }

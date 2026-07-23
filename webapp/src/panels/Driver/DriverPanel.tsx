@@ -4,7 +4,7 @@ import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import type { RideDTO } from '@local-blablacar/contracts';
 import { createRide, cancelRide as cancelRideApi } from '../../api/rides';
 import { updateBookingStatus } from '../../api/bookings';
-import { ConfirmPopout } from '../../components/ConfirmPopout';
+import { useConfirm } from '../../components/ConfirmPopout';
 import { ErrorSnackbar } from '../../components/ErrorSnackbar';
 import { NetworkError } from '../../components/NetworkError';
 import { useMyRides } from '../../hooks/useMyRides';
@@ -12,6 +12,7 @@ import { ActiveTripsList, CreateRideForm, DriverRideDetail } from './components'
 
 export function DriverPanel({ nav }: { nav: string }) {
   const routeNavigator = useRouteNavigator();
+  const confirm = useConfirm();
   const { rides: myRides, isLoading, error: initialLoadError, refetch } = useMyRides();
   
   const [view, setView] = useState<'list' | 'create' | 'detail'>('list');
@@ -94,9 +95,11 @@ export function DriverPanel({ nav }: { nav: string }) {
       {!isLoading && view === 'create' && (
         <CreateRideForm 
           onBack={() => setView('list')} 
-          onSubmit={(data) => routeNavigator.showPopout(
-            <ConfirmPopout title="Опубликовать?" text="Опубликовать поездку?" onConfirm={() => processCreate(data)} />
-          )} 
+          onSubmit={(data) => confirm({
+            title: 'Опубликовать?',
+            text: 'Опубликовать поездку?',
+            onConfirm: () => processCreate(data),
+          })} 
           loading={loading} 
         />
       )}
@@ -106,9 +109,11 @@ export function DriverPanel({ nav }: { nav: string }) {
           ride={selectedRide} 
           decisionLoading={decisionLoading}
           onDecision={handleDecision}
-          onCancelRide={(id) => routeNavigator.showPopout(
-            <ConfirmPopout title="Отменить?" text="Действие нельзя будет отменить." onConfirm={() => processCancelRide(id)} />
-          )} 
+          onCancelRide={(id) => confirm({
+            title: 'Отменить?',
+            text: 'Действие нельзя будет отменить.',
+            onConfirm: () => processCancelRide(id),
+          })} 
         />
       )}
       
