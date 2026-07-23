@@ -194,6 +194,9 @@ export async function cancelBooking(passengerId: string, bookingId: number) {
       if (booking.status === BOOKING_STATUS.REJECTED) {
         throw new BookingError('ALREADY_PROCESSED', 'Cannot cancel a rejected booking');
       }
+      if (booking.status === BOOKING_STATUS.CANCELLED) {
+        throw new BookingError('ALREADY_PROCESSED', 'Booking is already cancelled');
+      }
 
       // If cancelling an approved booking, restore seats
       if (booking.status === BOOKING_STATUS.APPROVED) {
@@ -202,7 +205,11 @@ export async function cancelBooking(passengerId: string, bookingId: number) {
           data: { seatsAvailable: { increment: booking.seatsBooked } },
         });
       }
-      return tx.booking.delete({ where: { id: bookingId } });
+      // Soft-delete: mark as CANCELLED instead of removing the record
+      return tx.booking.update({
+        where: { id: bookingId },
+        data: { status: BOOKING_STATUS.CANCELLED },
+      });
     },
     { isolationLevel: 'Serializable' },
   );

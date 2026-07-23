@@ -23,7 +23,7 @@ export async function searchRides(filters: SearchRidesInput) {
             gte: new Date(`${filters.date}T00:00:00.000Z`),
             lt: new Date(`${filters.date}T23:59:59.999Z`),
           }
-        : { gte: new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) },
+        : { gte: new Date() },
     },
     orderBy: { departureTime: 'asc' },
     include: { from: true, to: true, driver: true },
@@ -82,10 +82,10 @@ export async function cancelRide(driverId: string, rideId: number) {
     if (ride.driverId !== driverId) throw new RideError('FORBIDDEN', 'Only the ride owner can cancel');
     if (ride.status !== RIDE_STATUS.ACTIVE) throw new RideError('NOT_ACTIVE', 'Only active rides can be cancelled');
 
-    // Cascade: reject all pending/approved bookings when ride is cancelled (H3, H6)
+    // Cascade: cancel all pending/approved bookings when ride is cancelled (H3, H6)
     await tx.booking.updateMany({
       where: { rideId, status: { in: [BOOKING_STATUS.PENDING, BOOKING_STATUS.APPROVED] } },
-      data: { status: BOOKING_STATUS.REJECTED },
+      data: { status: BOOKING_STATUS.CANCELLED },
     });
 
     return tx.ride.update({

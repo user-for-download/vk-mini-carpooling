@@ -54,10 +54,11 @@ export const vkAuthMiddleware = createMiddleware<{ Variables: Variables }>(async
   // Constant-time comparison to prevent timing attacks (M3)
   const computedBuf = Buffer.from(computedSign);
   const signBuf = Buffer.from(sign);
-  const maxLen = Math.max(computedBuf.length, signBuf.length);
-  const cmpA = Buffer.alloc(maxLen, computedBuf);
-  const cmpB = Buffer.alloc(maxLen, signBuf);
-  if (!timingSafeEqual(cmpA, cmpB)) {
+  // HMAC-SHA256 base64 is always 44 chars; reject mismatched lengths immediately
+  if (computedBuf.length !== signBuf.length) {
+    return c.json({ error: 'Invalid sign' }, 403);
+  }
+  if (!timingSafeEqual(computedBuf, signBuf)) {
     return c.json({ error: 'Invalid sign' }, 403);
   }
 

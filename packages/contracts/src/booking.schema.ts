@@ -1,13 +1,14 @@
 import { z } from 'zod';
 import { LocationDTOSchema } from './location.schema';
 
-export const BookingStatusSchema = z.enum(['PENDING', 'APPROVED', 'REJECTED']);
+export const BookingStatusSchema = z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']);
 export type BookingStatus = z.infer<typeof BookingStatusSchema>;
 
 /** What a passenger submits to request a seat. */
 export const CreateBookingSchema = z.object({
   rideId: z.number().int().positive(),
-  seatIds: z.array(z.number().int().positive()).min(1).max(5),
+  seatIds: z.array(z.number().int().positive()).min(1).max(5)
+    .refine((ids) => new Set(ids).size === ids.length, 'Места не могут повторяться'),
   passengerNote: z.string().max(500).optional(),
 });
 export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
@@ -20,7 +21,8 @@ export type UpdateBookingStatusInput = z.infer<typeof UpdateBookingStatusSchema>
 
 /** What a passenger submits to change seats on an existing booking. */
 export const UpdateBookingSchema = z.object({
-  seatIds: z.array(z.number().int().positive()).min(1).max(5),
+  seatIds: z.array(z.number().int().positive()).min(1).max(5)
+    .refine((ids) => new Set(ids).size === ids.length, 'Места не могут повторяться'),
   passengerNote: z.string().max(500).optional(),
 });
 export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;

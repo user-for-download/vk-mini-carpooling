@@ -116,7 +116,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
   async function handleUpdate() {
     const booking = ride ? getBookingForRide(ride.id) : undefined;
     if (!booking || selectedSeats.length === 0) return;
-    if (!window.confirm(`Избронировать ${selectedSeats.length} мест(а)?`)) return;
+    if (!window.confirm(`Изменить бронирование на ${selectedSeats.length} мест(а)?`)) return;
 
     setLoading(true);
     setError(null);

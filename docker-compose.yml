@@ -16,5 +16,20 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://local_blablacar:local_blablacar@postgres:5432/local_blablacar
+      VK_APP_SECRET: testsecret
+      VK_AUTH_MOCK_ENABLED: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   pgdata:

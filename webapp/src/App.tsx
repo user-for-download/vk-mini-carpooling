@@ -14,6 +14,7 @@ import { RoleSelector } from './panels/RoleSelector';
 import { PassengerPanel } from './panels/PassengerPanel';
 import { DriverPanel } from './panels/DriverPanel';
 import { RideDetails } from './panels/RideDetails';
+import { initUser } from './api/user';
 
 // Error boundary to prevent white screen crashes (H24)
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -64,6 +65,43 @@ function useVkAppearance(): AppearanceType {
 function Layout() {
   const { view: activeView } = useActiveVkuiLocation();
   const activePanel = useGetPanelForView('main');
+  const [userReady, setUserReady] = useState(false);
+
+  useEffect(() => {
+    // Auto-initialize user on app launch to prevent FK crashes
+    async function ensureUser() {
+      try {
+        // In real VK: get user info from bridge; in dev mode: use mock defaults
+        if (import.meta.env.DEV && !window.location.search.includes('vk_user_id')) {
+          const mockUser = new URLSearchParams(window.location.search).get('mock_user') ?? 'passenger';
+          const id = mockUser === 'driver' ? '111111111' : '222222222';
+          await initUser({ firstName: mockUser === 'driver' ? 'Alex' : 'Ivan', lastName: mockUser === 'driver' ? 'Driver' : 'Smirnov' });
+        } else {
+          const vkUserInfo = await bridge.send('VKWebAppGetUserInfo');
+          await initUser({
+            firstName: vkUserInfo.first_name,
+            lastName: vkUserInfo.last_name,
+            photoUrl: vkUserInfo.photo_200,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to init user:', err);
+      } finally {
+        setUserReady(true);
+      }
+    }
+    ensureUser();
+  }, []);
+
+  if (!userReady) {
+    return (
+      <Root activeView="main">
+        <View nav="main" activePanel="role_selector">
+          <RoleSelector nav="role_selector" />
+        </View>
+      </Root>
+    );
+  }
 
   return (
     <Root activeView={activeView ?? 'main'}>

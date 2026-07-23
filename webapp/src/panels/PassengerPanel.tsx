@@ -357,12 +357,15 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                           ? 'var(--vkui-color-text-positive)'
                           : booking.status === BOOKING_STATUS.REJECTED
                           ? 'var(--vkui-color-text-negative)'
+                          : booking.status === BOOKING_STATUS.CANCELLED
+                          ? 'var(--vkui-color-text-tertiary)'
                           : 'var(--vkui-color-text-secondary)',
                         marginTop: 4,
                       }}>
                         {booking.status === BOOKING_STATUS.PENDING && 'Ожидает подтверждения'}
                         {booking.status === BOOKING_STATUS.APPROVED && 'Подтверждено'}
                         {booking.status === BOOKING_STATUS.REJECTED && 'Отклонено'}
+                        {booking.status === BOOKING_STATUS.CANCELLED && 'Отменено'}
                       </Text>
                     </div>
 
