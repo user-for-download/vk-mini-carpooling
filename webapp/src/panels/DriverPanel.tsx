@@ -20,6 +20,7 @@ import { createRide, listMyRides, cancelRide as cancelRideApi } from '../api/rid
 import { updateBookingStatus } from '../api/bookings';
 import { RIDE_STATUS, BOOKING_STATUS } from '@local-blablacar/contracts';
 import { TripCard } from '../components/TripCard';
+import { TripListItem } from '../components/TripListItem';
 import { CarSeatMap } from '../components/CarSeatMap';
 import { useLocations } from '../hooks/useLocations';
 import { formatRideDateTime, formatPrice } from '../utils/format';
@@ -183,51 +184,13 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
               </Button>
             </Card>
           ) : (
-            activeRides.map((ride) => {
-              const pendingCount = ride.bookings?.filter((b) => b.status === BOOKING_STATUS.PENDING).length || 0;
-              const approvedCount = ride.bookings?.filter((b) => b.status === BOOKING_STATUS.APPROVED).length || 0;
-              return (
-                <Card
-                  key={ride.id}
-                  mode="shadow"
-                  style={{ marginBottom: 12, cursor: 'pointer' }}
-                  onClick={() => openRideDetail(ride)}
-                >
-                  <Div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <Title level="3" style={{ color: 'var(--vkui-color-text-accent)', marginBottom: 4 }}>
-                          {formatPrice(ride.price)}
-                        </Title>
-                        <Text style={{ marginBottom: 4 }}>
-                          {ride.from?.name} → {ride.to?.name}
-                        </Text>
-                        <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-                          {formatRideDateTime(ride.departureTime)}
-                        </Text>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        {pendingCount > 0 && (
-                          <div style={{
-                            background: 'var(--vkui-color-background-warning, #ffb74d)',
-                            borderRadius: 12,
-                            padding: '4px 8px',
-                            marginBottom: 4,
-                          }}>
-                            <Text style={{ fontSize: 12, fontWeight: 600 }}>
-                              {pendingCount} заяв.
-                            </Text>
-                          </div>
-                        )}
-                        <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 12 }}>
-                          {approvedCount}/{ride.seatsAvailable} мест
-                        </Text>
-                      </div>
-                    </div>
-                  </Div>
-                </Card>
-              );
-            })
+            activeRides.map((ride) => (
+              <TripListItem
+                key={ride.id}
+                ride={ride}
+                onClick={() => openRideDetail(ride)}
+              />
+            ))
           )}
 
           {myRides.length > 0 && (

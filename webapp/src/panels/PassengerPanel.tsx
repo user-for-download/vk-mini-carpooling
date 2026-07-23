@@ -18,6 +18,7 @@ import { MAX_BOOKING_COUNT, BOOKING_STATUS } from '@local-blablacar/contracts';
 import { searchRides } from '../api/rides';
 import { createBooking, cancelBooking as cancelBookingApi, listMyBookings } from '../api/bookings';
 import { TripCard } from '../components/TripCard';
+import { TripListItem } from '../components/TripListItem';
 import { useLocations } from '../hooks/useLocations';
 import { formatRideDateTime, formatPrice } from '../utils/format';
 import { SEATS } from '../utils/constants';
@@ -180,51 +181,31 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
           <>
             {/* Active bookings */}
             {activeBookings.map((booking) => (
-              <Card
+              <TripListItem
                 key={booking.id}
-                mode="shadow"
-                style={{ marginBottom: 8, cursor: 'pointer' }}
+                ride={{
+                  id: booking.rideId,
+                  price: booking.ride?.price || 0,
+                  seatsAvailable: booking.ride?.seatsAvailable || 0,
+                  departureTime: booking.ride?.departureTime || '',
+                  from: booking.ride?.from,
+                  to: booking.ride?.to,
+                  bookings: [{ id: booking.id, status: booking.status, seatsBooked: booking.seatsBooked, seatIds: booking.seatIds }],
+                }}
                 onClick={() => routeNavigator.push(`/ride/${booking.rideId}`)}
-              >
-                <Div style={{ padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={{ fontWeight: 500, marginBottom: 2 }}>
-                        {booking.ride?.from?.name} → {booking.ride?.to?.name}
-                      </Text>
-                      <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-                        {booking.ride?.departureTime ? formatRideDateTime(booking.ride.departureTime) : '—'}
-                        {' · '}{booking.seatsBooked} мест · {booking.ride?.price != null ? formatPrice(booking.ride.price) : '—'}
-                      </Text>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                        <Text style={{
-                          fontSize: 12,
-                          color: booking.status === BOOKING_STATUS.APPROVED
-                            ? 'var(--vkui-color-text-positive)'
-                            : 'var(--vkui-color-text-secondary)',
-                        }}>
-                          {booking.status === BOOKING_STATUS.APPROVED ? 'Подтверждено' : 'Ожидает'}
-                        </Text>
-                        {booking.seatIds && booking.seatIds.length > 0 && (
-                          <Text style={{ fontSize: 11, color: 'var(--vkui-color-text-tertiary)' }}>
-                            ({booking.seatIds.map((id) => SEATS.find((s) => s.id === id)?.label).join(', ')})
-                          </Text>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      size="s"
-                      mode="secondary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCancelBooking(booking.id);
-                      }}
-                    >
-                      Отменить
-                    </Button>
-                  </div>
-                </Div>
-              </Card>
+                rightElement={
+                  <Button
+                    size="s"
+                    mode="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCancelBooking(booking.id);
+                    }}
+                  >
+                    Отменить
+                  </Button>
+                }
+              />
             ))}
 
             {/* History bookings */}
@@ -234,25 +215,18 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                   История
                 </Text>
                 {historyBookings.slice(0, 5).map((booking) => (
-                  <Card key={booking.id} mode="shadow" style={{ marginBottom: 8, opacity: 0.6 }}>
-                    <Div style={{ padding: '10px 16px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <Text style={{ fontSize: 13 }}>
-                            {booking.ride?.from?.name} → {booking.ride?.to?.name}
-                          </Text>
-                          <Text style={{
-                            fontSize: 11,
-                            color: booking.status === BOOKING_STATUS.REJECTED
-                              ? 'var(--vkui-color-text-negative)'
-                              : 'var(--vkui-color-text-tertiary)',
-                          }}>
-                            {booking.status === BOOKING_STATUS.REJECTED ? 'Отклонено' : 'Отменено'}
-                          </Text>
-                        </div>
-                      </div>
-                    </Div>
-                  </Card>
+                  <TripListItem
+                    key={booking.id}
+                    ride={{
+                      id: booking.rideId,
+                      price: booking.ride?.price || 0,
+                      seatsAvailable: booking.ride?.seatsAvailable || 0,
+                      departureTime: booking.ride?.departureTime || '',
+                      from: booking.ride?.from,
+                      to: booking.ride?.to,
+                    }}
+                    dimmed
+                  />
                 ))}
               </div>
             )}
@@ -363,32 +337,24 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
               {rides.map((ride) => {
                 const booked = isBooked(ride.id);
                 return (
-                  <Card key={ride.id} mode="shadow" style={{ marginBottom: 12 }}>
-                    <Div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <Title level="3" style={{ color: 'var(--vkui-color-text-accent)', marginBottom: 4 }}>
-                            {formatPrice(ride.price)}
-                          </Title>
-                          <Text style={{ marginBottom: 4 }}>
-                            {ride.from?.name} → {ride.to?.name}
-                          </Text>
-                          <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-                            {formatRideDateTime(ride.departureTime)}
-                            {' · '}{ride.seatsAvailable} мест
-                          </Text>
-                        </div>
-                        <Button
-                          size="s"
-                          mode={booked ? 'secondary' : 'primary'}
-                          appearance={booked ? 'neutral' : 'positive'}
-                          onClick={() => routeNavigator.push(`/ride/${ride.id}`)}
-                        >
-                          {booked ? 'Забронировано' : 'Подробнее'}
-                        </Button>
-                      </div>
-                    </Div>
-                  </Card>
+                  <TripListItem
+                    key={ride.id}
+                    ride={ride}
+                    onClick={() => routeNavigator.push(`/ride/${ride.id}`)}
+                    rightElement={
+                      <Button
+                        size="s"
+                        mode={booked ? 'secondary' : 'primary'}
+                        appearance={booked ? 'neutral' : 'positive'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          routeNavigator.push(`/ride/${ride.id}`);
+                        }}
+                      >
+                        {booked ? 'Забронировано' : 'Подробнее'}
+                      </Button>
+                    }
+                  />
                 );
               })}
 
