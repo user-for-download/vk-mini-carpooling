@@ -16,6 +16,7 @@ export async function searchRides(filters: SearchRidesInput) {
   return prisma.ride.findMany({
     where: {
       status: RIDE_STATUS.ACTIVE,
+      seatsAvailable: { gt: 0 }, // Hide full rides from search
       ...(filters.fromId !== undefined ? { fromId: filters.fromId } : {}),
       ...(filters.toId !== undefined ? { toId: filters.toId } : {}),
       departureTime: filters.date
