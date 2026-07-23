@@ -52,6 +52,16 @@
 .vkuiPanel__in {
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
+  max-height: 100vh !important;
+}
+
+/* View scroll fix */
+.vkuiRoot__view {
+  overflow: visible !important;
+}
+
+.vkuiView {
+  overflow: visible !important;
 }
 
 .vkuiGroup {
