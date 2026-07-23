@@ -52,7 +52,7 @@ function useVkAppearance(): AppearanceType {
       }
     }) as any;
     const unsubscribe = bridge.subscribe(handler);
-    return () => bridge.unsubscribe(unsubscribe as any);
+    return () => unsubscribe();
   }, []);
 
   return appearance;

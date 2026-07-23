@@ -13,18 +13,28 @@ export class RideError extends Error {
 
 export async function searchRides(filters: SearchRidesInput) {
   const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Build departure time filter
+  let departureFilter: { gte: Date; lt?: Date };
+  if (filters.date) {
+    const requestedDate = new Date(`${filters.date}T00:00:00.000Z`);
+    const isToday = requestedDate.getTime() === today.getTime();
+    departureFilter = {
+      gte: isToday ? now : requestedDate, // If today, use current time; otherwise midnight
+      lt: new Date(`${filters.date}T23:59:59.999Z`),
+    };
+  } else {
+    departureFilter = { gte: now };
+  }
+
   return prisma.ride.findMany({
     where: {
       status: RIDE_STATUS.ACTIVE,
       seatsAvailable: { gt: 0 }, // Hide full rides from search
       ...(filters.fromId !== undefined ? { fromId: filters.fromId } : {}),
       ...(filters.toId !== undefined ? { toId: filters.toId } : {}),
-      departureTime: filters.date
-        ? {
-            gte: new Date(`${filters.date}T00:00:00.000Z`),
-            lt: new Date(`${filters.date}T23:59:59.999Z`),
-          }
-        : { gte: new Date() },
+      departureTime: departureFilter,
     },
     orderBy: { departureTime: 'asc' },
     include: { from: true, to: true, driver: true },
@@ -63,7 +73,12 @@ export async function createRide(driverId: string, input: CreateRideInput) {
 export async function getRideById(id: number) {
   return prisma.ride.findUnique({
     where: { id },
-    include: { from: true, to: true, driver: true, bookings: true },
+    include: {
+      from: true,
+      to: true,
+      driver: true,
+      bookings: { include: { passenger: true } },
+    },
   });
 }
 
@@ -71,7 +86,11 @@ export async function listMyRides(driverId: string) {
   return prisma.ride.findMany({
     where: { driverId },
     orderBy: { departureTime: 'desc' },
-    include: { from: true, to: true, bookings: true },
+    include: {
+      from: true,
+      to: true,
+      bookings: { include: { passenger: true } },
+    },
     take: 200,
   });
 }

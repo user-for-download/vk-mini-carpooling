@@ -1,8 +1,8 @@
 import type { CreateRideInput, RideDTO, SearchRidesInput } from '@local-blablacar/contracts';
 import { api } from './client';
 
-export async function searchRides(filters: SearchRidesInput): Promise<RideDTO[]> {
-  const { data } = await api.get<RideDTO[]>('/api/rides', { params: filters });
+export async function searchRides(filters: SearchRidesInput, signal?: AbortSignal): Promise<RideDTO[]> {
+  const { data } = await api.get<RideDTO[]>('/api/rides', { params: filters, signal });
   return data;
 }
 

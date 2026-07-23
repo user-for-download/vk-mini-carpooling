@@ -71,7 +71,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
       const results = await searchRides({
         fromId: fromId ? Number(fromId) : undefined,
         toId: toId ? Number(toId) : undefined,
-      });
+      }, controller.signal);
       if (!controller.signal.aborted) {
         setRides(results);
         setView('results');
