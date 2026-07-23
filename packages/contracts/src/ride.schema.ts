@@ -14,7 +14,8 @@ export const CreateRideSchema = z.object({
     message: 'Departure time must be in the future',
   }),
   offeredSeats: z.array(z.number().int()).min(1).max(5)
-    .refine((ids) => new Set(ids).size === ids.length, 'Места не могут повторяться'),
+    .refine((ids) => new Set(ids).size === ids.length, 'Места не могут повторяться')
+    .refine((ids) => !ids.includes(1), 'Место водителя (1) не может быть предложено пассажирам'),
   price: z.number().int().min(0).max(1_000_000),
   driverNote: z.string().max(500).optional(),
 }).refine((v) => v.fromId !== v.toId, {

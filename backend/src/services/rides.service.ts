@@ -68,14 +68,20 @@ export async function createRide(driverId: string, input: CreateRideInput) {
     throw new RideError('FORBIDDEN', 'You already have an active ride near this time');
   }
 
+  // Filter out driver seat (id=1) from offeredSeats - driver seat cannot be offered to passengers
+  const validOfferedSeats = input.offeredSeats.filter((id) => id !== 1);
+  if (validOfferedSeats.length === 0) {
+    throw new RideError('FORBIDDEN', 'At least one passenger seat must be offered');
+  }
+
   return prisma.ride.create({
     data: {
       driverId,
       fromId: input.fromId,
       toId: input.toId,
       departureTime: new Date(input.departureTime),
-      seatsAvailable: input.offeredSeats.length,
-      offeredSeats: input.offeredSeats,
+      seatsAvailable: validOfferedSeats.length,
+      offeredSeats: validOfferedSeats,
       price: input.price,
       driverNote: input.driverNote || null,
     },
