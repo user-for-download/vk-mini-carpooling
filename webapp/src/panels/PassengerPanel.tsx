@@ -194,23 +194,23 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                   {locationsError}
                 </Text>
               )}
-              <FormItem top="Откуда">
+              <FormItem top="Откуда" required>
                 <Select
-                  placeholder="Выберите точку"
+                  placeholder="Выберите точку отправления"
                   value={fromId}
                   onChange={(e) => setFromId(e.target.value)}
-                  options={locations.map((l) => ({ label: l.name, value: String(l.id) }))}
+                  options={locations.filter((l) => l.id !== Number(toId)).map((l) => ({ label: l.name, value: String(l.id) }))}
                   disabled={locationsLoading}
                 />
               </FormItem>
 
-              <FormItem top="Куда">
+              <FormItem top="Куда" required>
                 <Select
-                  placeholder="Выберите точку"
+                  placeholder={fromId ? "Выберите точку назначения" : "Сначала выберите отправление"}
                   value={toId}
                   onChange={(e) => setToId(e.target.value)}
-                  options={locations.map((l) => ({ label: l.name, value: String(l.id) }))}
-                  disabled={locationsLoading}
+                  options={locations.filter((l) => l.id !== Number(fromId)).map((l) => ({ label: l.name, value: String(l.id) }))}
+                  disabled={locationsLoading || !fromId}
                 />
               </FormItem>
 
@@ -236,7 +236,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                 mode="primary"
                 appearance="positive"
                 onClick={handleSearch}
-                disabled={loading}
+                disabled={loading || !fromId || !toId}
               >
                 {loading ? 'Поиск...' : 'Найти поездки'}
               </Button>

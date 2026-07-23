@@ -328,23 +328,23 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                   {locationsError}
                 </Text>
               )}
-              <FormItem top="Откуда">
+              <FormItem top="Откуда" required>
                 <Select
-                  placeholder="Выберите точку"
+                  placeholder="Выберите точку отправления"
                   value={form.fromId}
-                  onChange={(e) => setForm((f) => ({ ...f, fromId: e.target.value }))}
-                  options={locations.map((l) => ({ label: l.name, value: String(l.id) }))}
+                  onChange={(e) => setForm((f) => ({ ...f, fromId: e.target.value, toId: f.toId === e.target.value ? '' : f.toId }))}
+                  options={locations.filter((l) => l.id !== Number(form.toId)).map((l) => ({ label: l.name, value: String(l.id) }))}
                   disabled={locationsLoading}
                 />
               </FormItem>
 
-              <FormItem top="Куда">
+              <FormItem top="Куда" required>
                 <Select
-                  placeholder="Выберите точку"
+                  placeholder={form.fromId ? "Выберите точку назначения" : "Сначала выберите отправление"}
                   value={form.toId}
                   onChange={(e) => setForm((f) => ({ ...f, toId: e.target.value }))}
-                  options={locations.map((l) => ({ label: l.name, value: String(l.id) }))}
-                  disabled={locationsLoading}
+                  options={locations.filter((l) => l.id !== Number(form.fromId)).map((l) => ({ label: l.name, value: String(l.id) }))}
+                  disabled={locationsLoading || !form.fromId}
                 />
               </FormItem>
 
