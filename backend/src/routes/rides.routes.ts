@@ -37,8 +37,9 @@ ridesRoutes.get('/mine', vkAuthMiddleware, async (c) => {
 
 ridesRoutes.get('/:id', vkAuthMiddleware, async (c) => {
   const id = Number(c.req.param('id'));
+  const userId = c.get('userId');
   if (Number.isNaN(id)) return c.json({ error: 'Invalid ride id' }, 400);
-  const ride = await getRideById(id);
+  const ride = await getRideById(id, userId);
   if (!ride) return c.json({ error: 'Not found' }, 404);
   return c.json(ride);
 });

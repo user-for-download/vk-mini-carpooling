@@ -190,6 +190,19 @@ export function TripCard({
                     </Text>
                   </div>
                 )}
+                {passengerNote && (
+                  <div style={{
+                    padding: '8px 12px',
+                    background: 'var(--vkui--color_background_secondary)',
+                    borderRadius: 8,
+                    marginBottom: 12,
+                  }}>
+                    <Text style={{ fontSize: 12, color: 'var(--vkui-color-text-secondary)', marginBottom: 2 }}>
+                      Ваш комментарий:
+                    </Text>
+                    <Text style={{ fontSize: 14 }}>{passengerNote}</Text>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 8 }}>
                   {bookingStatus === BOOKING_STATUS.PENDING && (
                     <Button size="l" stretched mode="primary" onClick={onStartEdit}>

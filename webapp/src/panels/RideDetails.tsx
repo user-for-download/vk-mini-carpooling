@@ -72,7 +72,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     setLoading(true);
     setError(null);
     try {
-      await createBooking({ rideId: ride.id, seatIds: selectedSeats, passengerNote: passengerNote || undefined });
+      await createBooking({ rideId: ride.id, seatIds: selectedSeats, passengerNote: passengerNote.trim() ? passengerNote.trim() : undefined });
       const [updatedBookings, updatedRide] = await Promise.all([listMyBookings(), getRide(ride.id)]);
       setMyBookings(updatedBookings);
       setRide(updatedRide);
@@ -124,7 +124,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     setLoading(true);
     setError(null);
     try {
-      await updateBookingApi(booking.id, { seatIds: selectedSeats, passengerNote: passengerNote || undefined });
+      await updateBookingApi(booking.id, { seatIds: selectedSeats, passengerNote: passengerNote.trim() ? passengerNote.trim() : null });
       const [updatedBookings, updatedRide] = await Promise.all([listMyBookings(), getRide(ride.id)]);
       setMyBookings(updatedBookings);
       setRide(updatedRide);
@@ -142,7 +142,14 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
 
   return (
     <PanelType {...props}>
-      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/passenger')} />}>
+      <PanelHeader
+        before={
+          <PanelHeaderBack
+            onClick={() => !loading && routeNavigator.push('/passenger')}
+            style={{ opacity: loading ? 0.5 : 1, pointerEvents: loading ? 'none' : 'auto' }}
+          />
+        }
+      >
         Детали поездки
       </PanelHeader>
 
@@ -185,10 +192,11 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
             ride={ride}
             bookings={ride.bookings}
             excludeBookingId={currentBooking?.id}
-            selectedSeats={selectedSeats}
-            passengerNote={passengerNote}
+            selectedSeats={isEditing ? selectedSeats : (currentBooking?.seatIds || selectedSeats)}
+            passengerNote={isEditing ? passengerNote : (currentBooking?.passengerNote || passengerNote)}
             onPassengerNoteChange={setPassengerNote}
             onSelectSeat={(seatId) => {
+              if (!isEditing) return;
               setSelectedSeats((prev) =>
                 prev.includes(seatId)
                   ? prev.filter((s) => s !== seatId)

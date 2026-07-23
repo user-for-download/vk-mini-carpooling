@@ -88,20 +88,36 @@ export async function createRide(driverId: string, input: CreateRideInput) {
   });
 }
 
-export async function getRideById(id: number) {
-  return prisma.ride.findUnique({
+export async function getRideById(id: number, requesterId: string) {
+  const ride = await prisma.ride.findUnique({
     where: { id },
     include: {
       from: true,
       to: true,
       driver: true,
-      // Only return approved bookings to prevent data leak
+      // Include PENDING bookings so seats render as occupied (grey) for everyone
       bookings: {
-        where: { status: BOOKING_STATUS.APPROVED },
+        where: { status: { in: [BOOKING_STATUS.APPROVED, BOOKING_STATUS.PENDING] } },
         include: { passenger: true },
       },
     },
   });
+
+  if (!ride) return null;
+
+  // Scrub passenger data for PENDING bookings to prevent data leak,
+  // unless the requester is the driver or the passenger themselves
+  if (ride.driverId !== requesterId) {
+    ride.bookings = ride.bookings.map((b) => {
+      if (b.status === BOOKING_STATUS.PENDING && b.passengerId !== requesterId) {
+        const { passenger, passengerNote, ...rest } = b;
+        return rest as any;
+      }
+      return b;
+    });
+  }
+
+  return ride;
 }
 
 export async function listMyRides(driverId: string) {
@@ -115,7 +131,11 @@ export async function listMyRides(driverId: string) {
       from: true,
       to: true,
       driver: true,
-      bookings: { include: { passenger: true } },
+      // Only include active bookings (PENDING/APPROVED), not CANCELLED/REJECTED
+      bookings: {
+        where: { status: { in: [BOOKING_STATUS.PENDING, BOOKING_STATUS.APPROVED] } },
+        include: { passenger: true },
+      },
     },
     take: 200,
   });
@@ -127,6 +147,7 @@ export async function cancelRide(driverId: string, rideId: number) {
     if (!ride) throw new RideError('NOT_FOUND', 'Ride not found');
     if (ride.driverId !== driverId) throw new RideError('FORBIDDEN', 'Only the ride owner can cancel');
     if (ride.status !== RIDE_STATUS.ACTIVE) throw new RideError('NOT_ACTIVE', 'Only active rides can be cancelled');
+    if (ride.departureTime < new Date()) throw new RideError('FORBIDDEN', 'Нельзя отменить прошедшую поездку');
 
     // Cascade: cancel all pending/approved bookings when ride is cancelled
     await tx.booking.updateMany({

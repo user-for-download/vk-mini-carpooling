@@ -153,6 +153,12 @@ export async function updateBookingStatus(input: {
       if (booking.ride.driverId !== input.driverId) {
         throw new BookingError('FORBIDDEN', 'Only the ride owner can update this booking');
       }
+      if (booking.ride.status !== RIDE_STATUS.ACTIVE) {
+        throw new BookingError('FORBIDDEN', 'Cannot update bookings for an inactive ride');
+      }
+      if (booking.ride.departureTime < new Date()) {
+        throw new BookingError('FORBIDDEN', 'Нельзя изменять статус для прошедших поездок');
+      }
       // Block updates to terminal states (REJECTED, CANCELLED)
       if (booking.status === BOOKING_STATUS.REJECTED || booking.status === BOOKING_STATUS.CANCELLED) {
         throw new BookingError('ALREADY_PROCESSED', 'Cannot update a rejected or cancelled booking');
@@ -223,6 +229,9 @@ export async function cancelBooking(passengerId: string, bookingId: number) {
       if (booking.passengerId !== passengerId) {
         throw new BookingError('FORBIDDEN', 'Only the booking owner can cancel');
       }
+      if (booking.ride.departureTime < new Date()) {
+        throw new BookingError('FORBIDDEN', 'Нельзя изменять статус для прошедших поездок');
+      }
       if (booking.status === BOOKING_STATUS.REJECTED) {
         throw new BookingError('ALREADY_PROCESSED', 'Cannot cancel a rejected booking');
       }
@@ -262,6 +271,9 @@ export async function updateBooking(passengerId: string, bookingId: number, inpu
       if (!booking) throw new BookingError('NOT_FOUND', 'Booking not found');
       if (booking.passengerId !== passengerId) {
         throw new BookingError('FORBIDDEN', 'Only the booking owner can update');
+      }
+      if (booking.ride.departureTime < new Date()) {
+        throw new BookingError('FORBIDDEN', 'Нельзя изменять статус для прошедших поездок');
       }
       if (booking.status !== BOOKING_STATUS.PENDING) {
         throw new BookingError('ALREADY_PROCESSED', 'Can only update pending bookings');

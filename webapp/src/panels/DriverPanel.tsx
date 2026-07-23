@@ -349,12 +349,16 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                 />
               </FormItem>
 
-              <FormItem top="Цена, ₽">
+              <FormItem top="Цена, ₽" required>
                 <Input
                   type="number"
-                  min={0}
-                  value={String(form.price)}
-                  onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) || 0 }))}
+                  min={10}
+                  max={1000000}
+                  value={form.price || ''}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setForm((f) => ({ ...f, price: isNaN(val) || val < 0 ? 0 : val }));
+                  }}
                 />
               </FormItem>
 
