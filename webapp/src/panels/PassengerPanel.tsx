@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Panel as PanelType,
   PanelHeader,
@@ -39,18 +39,25 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const ignoreRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
 
+  // Refetch bookings helper
+  const fetchBookings = useCallback(async () => {
+    try {
+      const data = await listMyBookings();
+      if (!ignoreRef.current) setMyBookings(data);
+    } catch (err) {
+      if (!ignoreRef.current) {
+        console.error(err);
+        setError('Не удалось загрузить бронирования');
+      }
+    }
+  }, []);
+
+  // Fetch on mount and refetch when panel becomes active
   useEffect(() => {
     ignoreRef.current = false;
-    listMyBookings()
-      .then((data) => { if (!ignoreRef.current) setMyBookings(data); })
-      .catch((err) => {
-        if (!ignoreRef.current) {
-          console.error(err);
-          setError('Не удалось загрузить бронирования');
-        }
-      });
+    fetchBookings();
     return () => { ignoreRef.current = true; };
-  }, []);
+  }, [fetchBookings]);
 
   async function handleSearch() {
     // Abort any previous in-flight search

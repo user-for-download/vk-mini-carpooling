@@ -3,10 +3,10 @@ FROM oven/bun:1.3-alpine AS base
 # Install dependencies only
 FROM base AS deps
 WORKDIR /app
-COPY package.json bun.lock* ./
-COPY ../packages/contracts/package.json ../packages/contracts/
-COPY ../packages/contracts/src ../packages/contracts/src
-COPY ../packages/contracts/tsconfig.json ../packages/contracts/
+COPY backend/package.json bun.lock* ./
+COPY packages/contracts/package.json packages/contracts/
+COPY packages/contracts/src packages/contracts/src
+COPY packages/contracts/tsconfig.json packages/contracts/
 RUN bun install --frozen-lockfile
 
 # Build stage
@@ -14,7 +14,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
-COPY . .
+COPY backend/ .
 RUN bunx prisma generate
 
 # Production stage

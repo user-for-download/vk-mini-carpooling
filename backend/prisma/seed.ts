@@ -16,8 +16,8 @@ const LOCATIONS = [
 async function main() {
   for (const location of LOCATIONS) {
     await prisma.location.upsert({
-      where: { id: LOCATIONS.indexOf(location) + 1 },
-      update: {},
+      where: { name: location.name },
+      update: { district: location.district },
       create: location,
     });
   }

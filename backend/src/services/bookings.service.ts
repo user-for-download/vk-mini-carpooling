@@ -2,6 +2,22 @@ import type { CreateBookingInput, UpdateBookingStatusInput, UpdateBookingInput }
 import { RIDE_STATUS, BOOKING_STATUS } from '@local-blablacar/contracts';
 import { prisma, env } from '../runtime';
 
+/**
+ * Seat Management Invariant:
+ * - `Ride.offeredSeats`: Array of seat IDs the driver offers (e.g. [1, 2, 3])
+ * - `Ride.seatsAvailable`: Fast-indexable counter, decremented only on APPROVAL
+ * - `Booking.seatIds`: Specific seat IDs requested by the passenger
+ *
+ * The `seatsAvailable` counter is decremented when a booking is APPROVED, not when created.
+ * PENDING bookings do NOT affect `seatsAvailable`. This allows multiple passengers to
+ * request the same seat (only the first approved wins).
+ *
+ * Exact seat validation is done via:
+ * 1. Checking `seatIds` against `offeredSeats` (are these seats available?)
+ * 2. Checking `seatIds` against already APPROVED/PENDING bookings (is anyone else using them?)
+ * 3. Checking `seatsAvailable` as a fast capacity guard
+ */
+
 export class BookingError extends Error {
   constructor(
     public code: 'FORBIDDEN' | 'ALREADY_PROCESSED' | 'NO_SEATS' | 'NOT_FOUND' | 'MAX_BOOKINGS' | 'TIME_CONFLICT',
