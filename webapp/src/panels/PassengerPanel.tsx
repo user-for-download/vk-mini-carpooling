@@ -26,14 +26,27 @@ import '../styles.css';
 
 type View = 'search' | 'results';
 
+const STORAGE_KEY = 'passenger_search_state';
+
 export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
-  const [view, setView] = useState<View>('search');
   const { locations, loading: locationsLoading, error: locationsError } = useLocations();
-  const [fromId, setFromId] = useState<string>('');
-  const [toId, setToId] = useState<string>('');
-  const [date, setDate] = useState<string>('');
-  const [rides, setRides] = useState<RideDTO[] | null>(null);
+
+  // Restore search state from sessionStorage on mount
+  const savedState = (() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const [view, setView] = useState<View>(savedState?.view || 'search');
+  const [fromId, setFromId] = useState<string>(savedState?.fromId || '');
+  const [toId, setToId] = useState<string>(savedState?.toId || '');
+  const [date, setDate] = useState<string>(savedState?.date || '');
+  const [rides, setRides] = useState<RideDTO[] | null>(savedState?.rides || null);
   const [myBookings, setMyBookings] = useState<BookingDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [bookingLoading, setBookingLoading] = useState<number | null>(null);
@@ -42,6 +55,17 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const [showHistory, setShowHistory] = useState(false);
   const ignoreRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Save search state to sessionStorage whenever it changes
+  const saveState = useCallback((newState: Partial<{ view: View; fromId: string; toId: string; date: string; rides: RideDTO[] | null }>) => {
+    try {
+      const current = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
+      const updated = { ...current, ...newState };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // Ignore storage errors
+    }
+  }, []);
 
   // Refetch bookings helper
   const fetchBookings = useCallback(async () => {
@@ -79,6 +103,8 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
       if (!controller.signal.aborted) {
         setRides(results);
         setView('results');
+        // Save search state to sessionStorage
+        saveState({ view: 'results', fromId, toId, date, rides: results });
       }
     } catch (err: any) {
       if (controller.signal.aborted) return;
@@ -271,7 +297,10 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                 <Select
                   placeholder="Выберите точку отправления"
                   value={fromId}
-                  onChange={(e) => setFromId(e.target.value)}
+                  onChange={(e) => {
+                    setFromId(e.target.value);
+                    saveState({ fromId: e.target.value });
+                  }}
                   options={locations.filter((l) => l.id !== Number(toId)).map((l) => ({ label: l.name, value: String(l.id) }))}
                   disabled={locationsLoading}
                 />
@@ -281,7 +310,10 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                 <Select
                   placeholder={fromId ? "Выберите точку назначения" : "Сначала выберите отправление"}
                   value={toId}
-                  onChange={(e) => setToId(e.target.value)}
+                  onChange={(e) => {
+                    setToId(e.target.value);
+                    saveState({ toId: e.target.value });
+                  }}
                   options={locations.filter((l) => l.id !== Number(fromId)).map((l) => ({ label: l.name, value: String(l.id) }))}
                   disabled={locationsLoading || !fromId}
                 />
@@ -291,7 +323,10 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                 <input
                   type="date"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={(e) => {
+                    setDate(e.target.value);
+                    saveState({ date: e.target.value });
+                  }}
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -333,7 +368,10 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                 size="l"
                 mode="primary"
                 appearance="positive"
-                onClick={() => setView('search')}
+                onClick={() => {
+                  setView('search');
+                  saveState({ view: 'search', rides: null });
+                }}
               >
                 Новый поиск
               </Button>
@@ -381,7 +419,10 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                 size="l"
                 stretched
                 mode="secondary"
-                onClick={() => setView('search')}
+                onClick={() => {
+                  setView('search');
+                  saveState({ view: 'search', rides: null });
+                }}
                 style={{ marginTop: 12 }}
               >
                 Новый поиск
