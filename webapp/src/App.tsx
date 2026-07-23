@@ -51,8 +51,11 @@ function useVkAppearance(): AppearanceType {
         setAppearance(e.detail.data.appearance as AppearanceType);
       }
     }) as any;
-    const unsubscribe = bridge.subscribe(handler);
-    return () => unsubscribe();
+    bridge.subscribe(handler);
+    return () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bridge.unsubscribe(handler as any);
+    };
   }, []);
 
   return appearance;
