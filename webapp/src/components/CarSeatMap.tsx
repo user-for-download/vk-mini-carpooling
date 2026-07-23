@@ -14,6 +14,7 @@ interface Booking {
     lastName: string;
   };
   seatsBooked: number;
+  seatIds: number[];
   status: string;
 }
 
@@ -21,9 +22,10 @@ interface CarSeatMapProps {
   seats: Seat[];
   selectedSeats: number[];
   occupiedSeats: { seatId: number; booking: Booking }[];
+  offeredSeats?: number[];
   maxSeats?: number;
   onSelectSeat?: (seatId: number) => void;
-  mode?: 'select' | 'view';
+  mode?: 'select' | 'view' | 'create';
 }
 
 function PersonIcon({ color = '#FFFFFF', size = 24 }: { color?: string; size?: number }) {
@@ -42,10 +44,26 @@ function PersonIcon({ color = '#FFFFFF', size = 24 }: { color?: string; size?: n
   );
 }
 
+type SeatStatus = 'available' | 'selected' | 'occupied' | 'unoffered';
+
+function getSeatColors(status: SeatStatus) {
+  switch (status) {
+    case 'unoffered':
+      return { bg: 'transparent', border: '#CBD5E1', text: '#94A3B8' };
+    case 'occupied':
+      return { bg: '#818C99', border: '#6B7280', text: '#FFFFFF' };
+    case 'selected':
+      return { bg: '#4BB34B', border: '#3D9B3D', text: '#FFFFFF' };
+    default:
+      return { bg: '#D6E8FA', border: '#A8C8E8', text: '#3F7FBF' };
+  }
+}
+
 export function CarSeatMap({
   seats,
   selectedSeats,
   occupiedSeats,
+  offeredSeats,
   maxSeats = 3,
   onSelectSeat,
   mode = 'select',
@@ -54,7 +72,8 @@ export function CarSeatMap({
   const backLeftSeat = seats.find((s) => s.position === 'back-left');
   const backRightSeat = seats.find((s) => s.position === 'back-right');
 
-  function getSeatStatus(seatId: number) {
+  function getSeatStatus(seatId: number): SeatStatus {
+    if (mode !== 'create' && offeredSeats && !offeredSeats.includes(seatId)) return 'unoffered';
     const isSelected = selectedSeats.includes(seatId);
     const occupied = occupiedSeats.find((o) => o.seatId === seatId);
     if (occupied) return 'occupied';
@@ -62,23 +81,60 @@ export function CarSeatMap({
     return 'available';
   }
 
-  function getSeatColors(status: string) {
-    switch (status) {
-      case 'occupied':
-        return { bg: '#818C99', border: '#6B7280', text: '#FFFFFF' };
-      case 'selected':
-        return { bg: '#4BB34B', border: '#3D9B3D', text: '#FFFFFF' };
-      case 'available':
-        return { bg: '#D6E8FA', border: '#A8C8E8', text: '#3F7FBF' };
-      default:
-        return { bg: '#D6E8FA', border: '#A8C8E8', text: '#3F7FBF' };
-    }
+  function handleSeatClick(seatId: number) {
+    const status = getSeatStatus(seatId);
+    if (mode === 'view' || status === 'unoffered' || status === 'occupied') return;
+    if (onSelectSeat) onSelectSeat(seatId);
   }
 
-  function handleSeatClick(seatId: number) {
-    if (mode === 'select' && onSelectSeat) {
-      onSelectSeat(seatId);
-    }
+  function seatStyle(seatId: number) {
+    const status = getSeatStatus(seatId);
+    const colors = getSeatColors(status);
+    return {
+      background: colors.bg,
+      border: `3px ${status === 'unoffered' ? 'dashed' : 'solid'} ${colors.border}`,
+      opacity: status === 'unoffered' ? 0.4 : 1,
+      cursor: (mode === 'view' || status === 'unoffered' || status === 'occupied') ? 'default' : 'pointer',
+      boxShadow: status === 'selected'
+        ? '0 0 0 4px rgba(75, 179, 75, 0.3)'
+        : '0 2px 8px rgba(0,0,0,0.15)',
+    };
+  }
+
+  function renderSeat(seat: Seat, top: number, left: number | string, size: number) {
+    const status = getSeatStatus(seat.id);
+    const colors = getSeatColors(status);
+    return (
+      <div
+        key={seat.id}
+        onClick={() => handleSeatClick(seat.id)}
+        style={{
+          position: 'absolute',
+          top,
+          left,
+          transform: typeof left === 'string' ? 'translateX(-50%)' : undefined,
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.2s ease',
+          ...seatStyle(seat.id),
+        }}
+      >
+        <PersonIcon color={colors.text} size={size > 65 ? 28 : 26} />
+        <Text style={{
+          color: colors.text,
+          fontSize: 10,
+          fontWeight: 600,
+          marginTop: 2,
+        }}>
+          {seat.label}
+        </Text>
+      </div>
+    );
   }
 
   return (
@@ -138,122 +194,13 @@ export function CarSeatMap({
         }} />
 
         {/* Front seat - Driver (В) */}
-        {frontSeat && (
-          <div
-            onClick={() => handleSeatClick(frontSeat.id)}
-            style={{
-              position: 'absolute',
-              top: 70,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: 70,
-              height: 70,
-              borderRadius: '50%',
-              background: getSeatColors(getSeatStatus(frontSeat.id)).bg,
-              border: `3px solid ${getSeatColors(getSeatStatus(frontSeat.id)).border}`,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: mode === 'select' ? 'pointer' : 'default',
-              transition: 'all 0.2s ease',
-              boxShadow: getSeatStatus(frontSeat.id) === 'selected'
-                ? '0 0 0 4px rgba(75, 179, 75, 0.3)'
-                : '0 2px 8px rgba(0,0,0,0.15)',
-            }}
-          >
-            <PersonIcon
-              color={getSeatColors(getSeatStatus(frontSeat.id)).text}
-              size={28}
-            />
-            <Text style={{
-              color: getSeatColors(getSeatStatus(frontSeat.id)).text,
-              fontSize: 10,
-              fontWeight: 600,
-              marginTop: 2,
-            }}>
-              {frontSeat.label}
-            </Text>
-          </div>
-        )}
+        {frontSeat && renderSeat(frontSeat, 70, '50%', 70)}
 
         {/* Back left seat (Л) */}
-        {backLeftSeat && (
-          <div
-            onClick={() => handleSeatClick(backLeftSeat.id)}
-            style={{
-              position: 'absolute',
-              bottom: 60,
-              left: 35,
-              width: 65,
-              height: 65,
-              borderRadius: '50%',
-              background: getSeatColors(getSeatStatus(backLeftSeat.id)).bg,
-              border: `3px solid ${getSeatColors(getSeatStatus(backLeftSeat.id)).border}`,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: mode === 'select' ? 'pointer' : 'default',
-              transition: 'all 0.2s ease',
-              boxShadow: getSeatStatus(backLeftSeat.id) === 'selected'
-                ? '0 0 0 4px rgba(75, 179, 75, 0.3)'
-                : '0 2px 8px rgba(0,0,0,0.15)',
-            }}
-          >
-            <PersonIcon
-              color={getSeatColors(getSeatStatus(backLeftSeat.id)).text}
-              size={26}
-            />
-            <Text style={{
-              color: getSeatColors(getSeatStatus(backLeftSeat.id)).text,
-              fontSize: 10,
-              fontWeight: 600,
-              marginTop: 2,
-            }}>
-              {backLeftSeat.label}
-            </Text>
-          </div>
-        )}
+        {backLeftSeat && renderSeat(backLeftSeat, 215, 35, 65)}
 
         {/* Back right seat (П) */}
-        {backRightSeat && (
-          <div
-            onClick={() => handleSeatClick(backRightSeat.id)}
-            style={{
-              position: 'absolute',
-              bottom: 60,
-              right: 35,
-              width: 65,
-              height: 65,
-              borderRadius: '50%',
-              background: getSeatColors(getSeatStatus(backRightSeat.id)).bg,
-              border: `3px solid ${getSeatColors(getSeatStatus(backRightSeat.id)).border}`,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: mode === 'select' ? 'pointer' : 'default',
-              transition: 'all 0.2s ease',
-              boxShadow: getSeatStatus(backRightSeat.id) === 'selected'
-                ? '0 0 0 4px rgba(75, 179, 75, 0.3)'
-                : '0 2px 8px rgba(0,0,0,0.15)',
-            }}
-          >
-            <PersonIcon
-              color={getSeatColors(getSeatStatus(backRightSeat.id)).text}
-              size={26}
-            />
-            <Text style={{
-              color: getSeatColors(getSeatStatus(backRightSeat.id)).text,
-              fontSize: 10,
-              fontWeight: 600,
-              marginTop: 2,
-            }}>
-              {backRightSeat.label}
-            </Text>
-          </div>
-        )}
+        {backRightSeat && renderSeat(backRightSeat, 215, 120, 65)}
 
         {/* Steering wheel */}
         <div style={{
@@ -316,7 +263,7 @@ export function CarSeatMap({
           <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#D6E8FA', border: '2px solid #A8C8E8' }} />
           <Text style={{ fontSize: 12, color: '#64748B' }}>Свободно</Text>
         </div>
-        {mode === 'select' && (
+        {mode !== 'view' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#4BB34B', border: '2px solid #3D9B3D' }} />
             <Text style={{ fontSize: 12, color: '#64748B' }}>Выбрано</Text>
@@ -326,12 +273,18 @@ export function CarSeatMap({
           <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#818C99', border: '2px solid #6B7280' }} />
           <Text style={{ fontSize: 12, color: '#64748B' }}>Занято</Text>
         </div>
+        {offeredSeats && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px dashed #CBD5E1', opacity: 0.4 }} />
+            <Text style={{ fontSize: 12, color: '#64748B' }}>Не offered</Text>
+          </div>
+        )}
       </div>
 
       {/* Selected seats count */}
-      {mode === 'select' && (
+      {mode !== 'view' && (
         <Text style={{ marginTop: 8, color: '#64748B', fontSize: 13 }}>
-          Выбрано мест: {selectedSeats.length} / {maxSeats}
+          {mode === 'create' ? 'Выбрано мест:' : 'Выбрано мест:'} {selectedSeats.length} / {maxSeats}
         </Text>
       )}
     </div>

@@ -30,12 +30,14 @@ export type BookingAvgAggregateOutputType = {
   id: number | null
   rideId: number | null
   seatsBooked: number | null
+  seatIds: number | null
 }
 
 export type BookingSumAggregateOutputType = {
   id: number | null
   rideId: number | null
   seatsBooked: number | null
+  seatIds: number[]
 }
 
 export type BookingMinAggregateOutputType = {
@@ -61,6 +63,7 @@ export type BookingCountAggregateOutputType = {
   rideId: number
   passengerId: number
   seatsBooked: number
+  seatIds: number
   status: number
   createdAt: number
   _all: number
@@ -71,12 +74,14 @@ export type BookingAvgAggregateInputType = {
   id?: true
   rideId?: true
   seatsBooked?: true
+  seatIds?: true
 }
 
 export type BookingSumAggregateInputType = {
   id?: true
   rideId?: true
   seatsBooked?: true
+  seatIds?: true
 }
 
 export type BookingMinAggregateInputType = {
@@ -102,6 +107,7 @@ export type BookingCountAggregateInputType = {
   rideId?: true
   passengerId?: true
   seatsBooked?: true
+  seatIds?: true
   status?: true
   createdAt?: true
   _all?: true
@@ -198,6 +204,7 @@ export type BookingGroupByOutputType = {
   rideId: number
   passengerId: string
   seatsBooked: number
+  seatIds: number[]
   status: $Enums.BookingStatus
   createdAt: Date
   _count: BookingCountAggregateOutputType | null
@@ -230,6 +237,7 @@ export type BookingWhereInput = {
   rideId?: Prisma.IntFilter<"Booking"> | number
   passengerId?: Prisma.StringFilter<"Booking"> | string
   seatsBooked?: Prisma.IntFilter<"Booking"> | number
+  seatIds?: Prisma.IntNullableListFilter<"Booking">
   status?: Prisma.EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   ride?: Prisma.XOR<Prisma.RideScalarRelationFilter, Prisma.RideWhereInput>
@@ -241,6 +249,7 @@ export type BookingOrderByWithRelationInput = {
   rideId?: Prisma.SortOrder
   passengerId?: Prisma.SortOrder
   seatsBooked?: Prisma.SortOrder
+  seatIds?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   ride?: Prisma.RideOrderByWithRelationInput
@@ -255,6 +264,7 @@ export type BookingWhereUniqueInput = Prisma.AtLeast<{
   rideId?: Prisma.IntFilter<"Booking"> | number
   passengerId?: Prisma.StringFilter<"Booking"> | string
   seatsBooked?: Prisma.IntFilter<"Booking"> | number
+  seatIds?: Prisma.IntNullableListFilter<"Booking">
   status?: Prisma.EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   ride?: Prisma.XOR<Prisma.RideScalarRelationFilter, Prisma.RideWhereInput>
@@ -266,6 +276,7 @@ export type BookingOrderByWithAggregationInput = {
   rideId?: Prisma.SortOrder
   passengerId?: Prisma.SortOrder
   seatsBooked?: Prisma.SortOrder
+  seatIds?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.BookingCountOrderByAggregateInput
@@ -283,12 +294,14 @@ export type BookingScalarWhereWithAggregatesInput = {
   rideId?: Prisma.IntWithAggregatesFilter<"Booking"> | number
   passengerId?: Prisma.StringWithAggregatesFilter<"Booking"> | string
   seatsBooked?: Prisma.IntWithAggregatesFilter<"Booking"> | number
+  seatIds?: Prisma.IntNullableListFilter<"Booking">
   status?: Prisma.EnumBookingStatusWithAggregatesFilter<"Booking"> | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Booking"> | Date | string
 }
 
 export type BookingCreateInput = {
   seatsBooked?: number
+  seatIds?: Prisma.BookingCreateseatIdsInput | number[]
   status?: $Enums.BookingStatus
   createdAt?: Date | string
   ride: Prisma.RideCreateNestedOneWithoutBookingsInput
@@ -300,12 +313,14 @@ export type BookingUncheckedCreateInput = {
   rideId: number
   passengerId: string
   seatsBooked?: number
+  seatIds?: Prisma.BookingCreateseatIdsInput | number[]
   status?: $Enums.BookingStatus
   createdAt?: Date | string
 }
 
 export type BookingUpdateInput = {
   seatsBooked?: Prisma.IntFieldUpdateOperationsInput | number
+  seatIds?: Prisma.BookingUpdateseatIdsInput | number[]
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ride?: Prisma.RideUpdateOneRequiredWithoutBookingsNestedInput
@@ -317,6 +332,7 @@ export type BookingUncheckedUpdateInput = {
   rideId?: Prisma.IntFieldUpdateOperationsInput | number
   passengerId?: Prisma.StringFieldUpdateOperationsInput | string
   seatsBooked?: Prisma.IntFieldUpdateOperationsInput | number
+  seatIds?: Prisma.BookingUpdateseatIdsInput | number[]
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -326,12 +342,14 @@ export type BookingCreateManyInput = {
   rideId: number
   passengerId: string
   seatsBooked?: number
+  seatIds?: Prisma.BookingCreateseatIdsInput | number[]
   status?: $Enums.BookingStatus
   createdAt?: Date | string
 }
 
 export type BookingUpdateManyMutationInput = {
   seatsBooked?: Prisma.IntFieldUpdateOperationsInput | number
+  seatIds?: Prisma.BookingUpdateseatIdsInput | number[]
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -341,6 +359,7 @@ export type BookingUncheckedUpdateManyInput = {
   rideId?: Prisma.IntFieldUpdateOperationsInput | number
   passengerId?: Prisma.StringFieldUpdateOperationsInput | string
   seatsBooked?: Prisma.IntFieldUpdateOperationsInput | number
+  seatIds?: Prisma.BookingUpdateseatIdsInput | number[]
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -360,6 +379,7 @@ export type BookingCountOrderByAggregateInput = {
   rideId?: Prisma.SortOrder
   passengerId?: Prisma.SortOrder
   seatsBooked?: Prisma.SortOrder
+  seatIds?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -368,6 +388,7 @@ export type BookingAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   rideId?: Prisma.SortOrder
   seatsBooked?: Prisma.SortOrder
+  seatIds?: Prisma.SortOrder
 }
 
 export type BookingMaxOrderByAggregateInput = {
@@ -392,6 +413,7 @@ export type BookingSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   rideId?: Prisma.SortOrder
   seatsBooked?: Prisma.SortOrder
+  seatIds?: Prisma.SortOrder
 }
 
 export type BookingCreateNestedManyWithoutPassengerInput = {
@@ -478,12 +500,22 @@ export type BookingUncheckedUpdateManyWithoutRideNestedInput = {
   deleteMany?: Prisma.BookingScalarWhereInput | Prisma.BookingScalarWhereInput[]
 }
 
+export type BookingCreateseatIdsInput = {
+  set: number[]
+}
+
+export type BookingUpdateseatIdsInput = {
+  set?: number[]
+  push?: number | number[]
+}
+
 export type EnumBookingStatusFieldUpdateOperationsInput = {
   set?: $Enums.BookingStatus
 }
 
 export type BookingCreateWithoutPassengerInput = {
   seatsBooked?: number
+  seatIds?: Prisma.BookingCreateseatIdsInput | number[]
   status?: $Enums.BookingStatus
   createdAt?: Date | string
   ride: Prisma.RideCreateNestedOneWithoutBookingsInput
@@ -493,6 +525,7 @@ export type BookingUncheckedCreateWithoutPassengerInput = {
   id?: number
   rideId: number
   seatsBooked?: number
+  seatIds?: Prisma.BookingCreateseatIdsInput | number[]
   status?: $Enums.BookingStatus
   createdAt?: Date | string
 }
@@ -531,12 +564,14 @@ export type BookingScalarWhereInput = {
   rideId?: Prisma.IntFilter<"Booking"> | number
   passengerId?: Prisma.StringFilter<"Booking"> | string
   seatsBooked?: Prisma.IntFilter<"Booking"> | number
+  seatIds?: Prisma.IntNullableListFilter<"Booking">
   status?: Prisma.EnumBookingStatusFilter<"Booking"> | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
 }
 
 export type BookingCreateWithoutRideInput = {
   seatsBooked?: number
+  seatIds?: Prisma.BookingCreateseatIdsInput | number[]
   status?: $Enums.BookingStatus
   createdAt?: Date | string
   passenger: Prisma.UserCreateNestedOneWithoutBookingsInput
@@ -546,6 +581,7 @@ export type BookingUncheckedCreateWithoutRideInput = {
   id?: number
   passengerId: string
   seatsBooked?: number
+  seatIds?: Prisma.BookingCreateseatIdsInput | number[]
   status?: $Enums.BookingStatus
   createdAt?: Date | string
 }
@@ -580,12 +616,14 @@ export type BookingCreateManyPassengerInput = {
   id?: number
   rideId: number
   seatsBooked?: number
+  seatIds?: Prisma.BookingCreateseatIdsInput | number[]
   status?: $Enums.BookingStatus
   createdAt?: Date | string
 }
 
 export type BookingUpdateWithoutPassengerInput = {
   seatsBooked?: Prisma.IntFieldUpdateOperationsInput | number
+  seatIds?: Prisma.BookingUpdateseatIdsInput | number[]
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ride?: Prisma.RideUpdateOneRequiredWithoutBookingsNestedInput
@@ -595,6 +633,7 @@ export type BookingUncheckedUpdateWithoutPassengerInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   rideId?: Prisma.IntFieldUpdateOperationsInput | number
   seatsBooked?: Prisma.IntFieldUpdateOperationsInput | number
+  seatIds?: Prisma.BookingUpdateseatIdsInput | number[]
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -603,6 +642,7 @@ export type BookingUncheckedUpdateManyWithoutPassengerInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   rideId?: Prisma.IntFieldUpdateOperationsInput | number
   seatsBooked?: Prisma.IntFieldUpdateOperationsInput | number
+  seatIds?: Prisma.BookingUpdateseatIdsInput | number[]
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -611,12 +651,14 @@ export type BookingCreateManyRideInput = {
   id?: number
   passengerId: string
   seatsBooked?: number
+  seatIds?: Prisma.BookingCreateseatIdsInput | number[]
   status?: $Enums.BookingStatus
   createdAt?: Date | string
 }
 
 export type BookingUpdateWithoutRideInput = {
   seatsBooked?: Prisma.IntFieldUpdateOperationsInput | number
+  seatIds?: Prisma.BookingUpdateseatIdsInput | number[]
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   passenger?: Prisma.UserUpdateOneRequiredWithoutBookingsNestedInput
@@ -626,6 +668,7 @@ export type BookingUncheckedUpdateWithoutRideInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   passengerId?: Prisma.StringFieldUpdateOperationsInput | string
   seatsBooked?: Prisma.IntFieldUpdateOperationsInput | number
+  seatIds?: Prisma.BookingUpdateseatIdsInput | number[]
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -634,6 +677,7 @@ export type BookingUncheckedUpdateManyWithoutRideInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   passengerId?: Prisma.StringFieldUpdateOperationsInput | string
   seatsBooked?: Prisma.IntFieldUpdateOperationsInput | number
+  seatIds?: Prisma.BookingUpdateseatIdsInput | number[]
   status?: Prisma.EnumBookingStatusFieldUpdateOperationsInput | $Enums.BookingStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -645,6 +689,7 @@ export type BookingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   rideId?: boolean
   passengerId?: boolean
   seatsBooked?: boolean
+  seatIds?: boolean
   status?: boolean
   createdAt?: boolean
   ride?: boolean | Prisma.RideDefaultArgs<ExtArgs>
@@ -656,6 +701,7 @@ export type BookingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   rideId?: boolean
   passengerId?: boolean
   seatsBooked?: boolean
+  seatIds?: boolean
   status?: boolean
   createdAt?: boolean
   ride?: boolean | Prisma.RideDefaultArgs<ExtArgs>
@@ -667,6 +713,7 @@ export type BookingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   rideId?: boolean
   passengerId?: boolean
   seatsBooked?: boolean
+  seatIds?: boolean
   status?: boolean
   createdAt?: boolean
   ride?: boolean | Prisma.RideDefaultArgs<ExtArgs>
@@ -678,11 +725,12 @@ export type BookingSelectScalar = {
   rideId?: boolean
   passengerId?: boolean
   seatsBooked?: boolean
+  seatIds?: boolean
   status?: boolean
   createdAt?: boolean
 }
 
-export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "rideId" | "passengerId" | "seatsBooked" | "status" | "createdAt", ExtArgs["result"]["booking"]>
+export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "rideId" | "passengerId" | "seatsBooked" | "seatIds" | "status" | "createdAt", ExtArgs["result"]["booking"]>
 export type BookingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ride?: boolean | Prisma.RideDefaultArgs<ExtArgs>
   passenger?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -707,6 +755,7 @@ export type $BookingPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     rideId: number
     passengerId: string
     seatsBooked: number
+    seatIds: number[]
     status: $Enums.BookingStatus
     createdAt: Date
   }, ExtArgs["result"]["booking"]>
@@ -1138,6 +1187,7 @@ export interface BookingFieldRefs {
   readonly rideId: Prisma.FieldRef<"Booking", 'Int'>
   readonly passengerId: Prisma.FieldRef<"Booking", 'String'>
   readonly seatsBooked: Prisma.FieldRef<"Booking", 'Int'>
+  readonly seatIds: Prisma.FieldRef<"Booking", 'Int[]'>
   readonly status: Prisma.FieldRef<"Booking", 'BookingStatus'>
   readonly createdAt: Prisma.FieldRef<"Booking", 'DateTime'>
 }

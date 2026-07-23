@@ -11,7 +11,7 @@ export const CreateRideSchema = z.object({
   fromId: z.number().int(),
   toId: z.number().int(),
   departureTime: z.string().datetime(),
-  seatsAvailable: z.number().int().min(1).max(8),
+  offeredSeats: z.array(z.number().int()).min(1).max(3),
   price: z.number().int().min(0).max(1_000_000),
 }).refine((v) => v.fromId !== v.toId, {
   message: 'fromId and toId must be different locations',
@@ -35,6 +35,7 @@ export const RideDTOSchema = z.object({
   toId: z.number().int(),
   departureTime: z.string().datetime(),
   seatsAvailable: z.number().int(),
+  offeredSeats: z.array(z.number().int()),
   price: z.number().int(),
   status: RideStatusSchema,
   createdAt: z.string().datetime(),

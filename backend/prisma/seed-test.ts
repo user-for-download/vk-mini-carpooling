@@ -58,7 +58,8 @@ async function main() {
     throw new Error('Run `bun run prisma:seed` first to create locations.');
   }
 
-  // 3. Create rides: each driver publishes 4-6 rides
+  // 3. Create rides: each driver publishes 4-6 rides with specific offered seats
+  const ALL_SEATS = [1, 2, 3]; // В, Л, П
   const ridesCreated = [];
   for (const driver of DRIVERS) {
     const rideCount = randInt(4, 6);
@@ -69,7 +70,8 @@ async function main() {
       while (to.id === from.id) to = pick(locations);
 
       const departure = hoursFromNow(randInt(1, 72)); // 1-72 hours ahead
-      const seats = randInt(1, 4);
+      // Randomly offer 1 to 3 seats
+      const offeredSeats = ALL_SEATS.slice(0, randInt(1, 3));
       const price = randInt(150, 800);
 
       const ride = await prisma.ride.create({
@@ -78,7 +80,8 @@ async function main() {
           fromId: from.id,
           toId: to.id,
           departureTime: departure,
-          seatsAvailable: seats,
+          seatsAvailable: offeredSeats.length,
+          offeredSeats,
           price,
           status: RideStatus.ACTIVE,
         },
@@ -88,20 +91,23 @@ async function main() {
   }
   console.log(`Created ${ridesCreated.length} active rides.`);
 
-  // 4. Create bookings: 1-3 passengers book each ride
+  // 4. Create bookings: 1-3 passengers book each ride with specific seat IDs
   let bookingsCreated = 0;
   for (const ride of ridesCreated) {
     const bookingCount = randInt(1, 3);
     const usedPassengers = new Set<string>();
+    let availableSeats = [...ride.offeredSeats]; // Track remaining available seats
 
-    for (let i = 0; i < bookingCount && usedPassengers.size < PASSENGERS.length; i++) {
+    for (let i = 0; i < bookingCount && usedPassengers.size < PASSENGERS.length && availableSeats.length > 0; i++) {
       let passenger: typeof PASSENGERS[0];
       do {
         passenger = pick(PASSENGERS);
       } while (usedPassengers.has(passenger.id));
       usedPassengers.add(passenger.id);
 
-      const seatsBooked = randInt(1, Math.min(2, ride.seatsAvailable));
+      // Book 1-2 specific seats from available ones
+      const numToBook = randInt(1, Math.min(2, availableSeats.length));
+      const seatIds = availableSeats.splice(0, numToBook);
 
       // Mix of statuses for variety
       const statusRoll = Math.random();
@@ -114,7 +120,8 @@ async function main() {
         data: {
           rideId: ride.id,
           passengerId: passenger.id,
-          seatsBooked,
+          seatsBooked: seatIds.length,
+          seatIds,
           status,
         },
       });
@@ -125,26 +132,30 @@ async function main() {
 
   // 5. Add completed and cancelled rides for realism
   for (let i = 0; i < 3; i++) {
+    const offeredSeats = ALL_SEATS.slice(0, randInt(1, 3));
     await prisma.ride.create({
       data: {
         driverId: pick(DRIVERS).id,
         fromId: pick(locations).id,
         toId: pick(locations).id,
         departureTime: hoursFromNow(-24 - i * 12),
-        seatsAvailable: randInt(1, 4),
+        seatsAvailable: offeredSeats.length,
+        offeredSeats,
         price: randInt(200, 600),
         status: RideStatus.COMPLETED,
       },
     });
   }
   for (let i = 0; i < 2; i++) {
+    const offeredSeats = ALL_SEATS.slice(0, randInt(1, 3));
     await prisma.ride.create({
       data: {
         driverId: pick(DRIVERS).id,
         fromId: pick(locations).id,
         toId: pick(locations).id,
         departureTime: hoursFromNow(-12 - i * 6),
-        seatsAvailable: randInt(1, 3),
+        seatsAvailable: offeredSeats.length,
+        offeredSeats,
         price: randInt(150, 500),
         status: RideStatus.CANCELLED,
       },

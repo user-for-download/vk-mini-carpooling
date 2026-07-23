@@ -20,12 +20,27 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
     throw new BookingError('FORBIDDEN', 'Drivers cannot book their own ride');
   }
 
-  // Check if seats available
-  if (ride.seatsAvailable < input.seatsBooked) {
+  // 1. Verify selected seats are actually offered by the driver
+  const invalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
+  if (invalidSeats.length > 0) {
+    throw new BookingError('NO_SEATS', 'Selected seats are not offered on this ride');
+  }
+
+  // 2. Prevent booking seats that are already APPROVED
+  const approvedBookings = await prisma.booking.findMany({
+    where: { rideId: ride.id, status: BOOKING_STATUS.APPROVED },
+  });
+  const takenSeats = new Set(approvedBookings.flatMap((b) => b.seatIds));
+  if (input.seatIds.some((id) => takenSeats.has(id))) {
+    throw new BookingError('NO_SEATS', 'One or more selected seats are already taken');
+  }
+
+  // 3. Check seats available
+  if (ride.seatsAvailable < input.seatIds.length) {
     throw new BookingError('NO_SEATS', 'Not enough seats available');
   }
 
-  // Check max booking count
+  // 4. Check max booking count
   const activeBookingCount = await prisma.booking.count({
     where: {
       passengerId,
@@ -39,9 +54,9 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
     );
   }
 
-  // Check for time conflict (overlapping rides)
-  const RIDE_DURATION_MS = 2 * 60 * 60 * 1000; // assumed average trip length
-  const CONFLICT_BUFFER_MS = 2 * 60 * 60 * 1000; // buffer on each side of the ride window
+  // 5. Check for time conflict (overlapping rides)
+  const RIDE_DURATION_MS = 2 * 60 * 60 * 1000;
+  const CONFLICT_BUFFER_MS = 2 * 60 * 60 * 1000;
 
   const rideStart = new Date(ride.departureTime);
   const rideEnd = new Date(rideStart.getTime() + RIDE_DURATION_MS);
@@ -68,7 +83,12 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
   }
 
   return prisma.booking.create({
-    data: { rideId: input.rideId, passengerId, seatsBooked: input.seatsBooked },
+    data: {
+      rideId: input.rideId,
+      passengerId,
+      seatsBooked: input.seatIds.length,
+      seatIds: input.seatIds,
+    },
   });
 }
 
@@ -101,6 +121,16 @@ export async function updateBookingStatus(input: {
       if (booking.ride.seatsAvailable < booking.seatsBooked) {
         throw new BookingError('NO_SEATS', 'Not enough seats left');
       }
+
+      // Check specific seat collisions
+      const approvedBookings = await tx.booking.findMany({
+        where: { rideId: booking.rideId, status: BOOKING_STATUS.APPROVED },
+      });
+      const takenSeats = new Set(approvedBookings.flatMap((b) => b.seatIds));
+      if (booking.seatIds.some((id) => takenSeats.has(id))) {
+        throw new BookingError('NO_SEATS', 'These seats were already approved for another passenger');
+      }
+
       await tx.ride.update({
         where: { id: booking.rideId },
         data: { seatsAvailable: { decrement: booking.seatsBooked } },

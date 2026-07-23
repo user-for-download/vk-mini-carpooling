@@ -18,11 +18,18 @@ import { createRide, listMyRides, cancelRide as cancelRideApi } from '../api/rid
 import { updateBookingStatus } from '../api/bookings';
 import { RIDE_STATUS, BOOKING_STATUS } from '@local-blablacar/contracts';
 import { TripCard } from '../components/TripCard';
+import { CarSeatMap } from '../components/CarSeatMap';
 import { useLocations } from '../hooks/useLocations';
 import { formatRideDateTime } from '../utils/format';
 import '../styles.css';
 
 type View = 'list' | 'create' | 'rides';
+
+const SEATS = [
+  { id: 1, label: 'В', position: 'front' as const },
+  { id: 2, label: 'Л', position: 'back-left' as const },
+  { id: 3, label: 'П', position: 'back-right' as const },
+];
 
 export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
@@ -33,7 +40,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
     fromId: '',
     toId: '',
     departureTime: '',
-    seats: '1',
+    offeredSeats: [1, 2, 3],
     price: '0',
   });
   const [loading, setLoading] = useState(false);
@@ -56,10 +63,10 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
         fromId: Number(form.fromId),
         toId: Number(form.toId),
         departureTime: new Date(form.departureTime).toISOString(),
-        seatsAvailable: Number(form.seats),
+        offeredSeats: form.offeredSeats,
         price: Number(form.price),
       });
-      setForm({ fromId: '', toId: '', departureTime: '', seats: '1', price: '0' });
+      setForm({ fromId: '', toId: '', departureTime: '', offeredSeats: [1, 2, 3], price: '0' });
       setView('list');
       await refresh();
     } catch (err: any) {
@@ -180,7 +187,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                       <div>
                         <Text style={{ fontWeight: 500 }}>Заявка: {booking.passengerId}</Text>
                         <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-                          {booking.seatsBooked} мест
+                          {booking.seatsBooked} мест ({booking.seatIds.map((id) => SEATS.find((s) => s.id === id)?.label).join(', ')})
                         </Text>
                       </div>
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -261,13 +268,25 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                 />
               </FormItem>
 
-              <FormItem top="Мест">
-                <Input
-                  type="number"
-                  min={1}
-                  max={8}
-                  value={form.seats}
-                  onChange={(e) => setForm((f) => ({ ...f, seats: e.target.value }))}
+              <FormItem top="Доступные места в автомобиле">
+                <div style={{ marginBottom: 12 }}>
+                  <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13, textAlign: 'center' }}>
+                    Выберите места, на которые готовы посадить пассажиров
+                  </Text>
+                </div>
+                <CarSeatMap
+                  seats={SEATS}
+                  selectedSeats={form.offeredSeats}
+                  occupiedSeats={[]}
+                  mode="create"
+                  onSelectSeat={(id) => {
+                    setForm((f) => ({
+                      ...f,
+                      offeredSeats: f.offeredSeats.includes(id)
+                        ? f.offeredSeats.filter((s) => s !== id)
+                        : [...f.offeredSeats, id],
+                    }));
+                  }}
                 />
               </FormItem>
 
@@ -286,7 +305,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                 mode="primary"
                 appearance="positive"
                 onClick={handleCreate}
-                disabled={loading}
+                disabled={loading || form.offeredSeats.length === 0}
               >
                 {loading ? 'Создание...' : 'Опубликовать'}
               </Button>

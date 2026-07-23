@@ -36,7 +36,8 @@ export async function createRide(driverId: string, input: CreateRideInput) {
       fromId: input.fromId,
       toId: input.toId,
       departureTime: new Date(input.departureTime),
-      seatsAvailable: input.seatsAvailable,
+      seatsAvailable: input.offeredSeats.length,
+      offeredSeats: input.offeredSeats,
       price: input.price,
     },
   });

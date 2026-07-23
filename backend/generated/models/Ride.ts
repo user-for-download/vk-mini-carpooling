@@ -31,6 +31,7 @@ export type RideAvgAggregateOutputType = {
   fromId: number | null
   toId: number | null
   seatsAvailable: number | null
+  offeredSeats: number | null
   price: number | null
 }
 
@@ -39,6 +40,7 @@ export type RideSumAggregateOutputType = {
   fromId: number | null
   toId: number | null
   seatsAvailable: number | null
+  offeredSeats: number[]
   price: number | null
 }
 
@@ -73,6 +75,7 @@ export type RideCountAggregateOutputType = {
   toId: number
   departureTime: number
   seatsAvailable: number
+  offeredSeats: number
   price: number
   status: number
   createdAt: number
@@ -85,6 +88,7 @@ export type RideAvgAggregateInputType = {
   fromId?: true
   toId?: true
   seatsAvailable?: true
+  offeredSeats?: true
   price?: true
 }
 
@@ -93,6 +97,7 @@ export type RideSumAggregateInputType = {
   fromId?: true
   toId?: true
   seatsAvailable?: true
+  offeredSeats?: true
   price?: true
 }
 
@@ -127,6 +132,7 @@ export type RideCountAggregateInputType = {
   toId?: true
   departureTime?: true
   seatsAvailable?: true
+  offeredSeats?: true
   price?: true
   status?: true
   createdAt?: true
@@ -226,6 +232,7 @@ export type RideGroupByOutputType = {
   toId: number
   departureTime: Date
   seatsAvailable: number
+  offeredSeats: number[]
   price: number
   status: $Enums.RideStatus
   createdAt: Date
@@ -261,6 +268,7 @@ export type RideWhereInput = {
   toId?: Prisma.IntFilter<"Ride"> | number
   departureTime?: Prisma.DateTimeFilter<"Ride"> | Date | string
   seatsAvailable?: Prisma.IntFilter<"Ride"> | number
+  offeredSeats?: Prisma.IntNullableListFilter<"Ride">
   price?: Prisma.IntFilter<"Ride"> | number
   status?: Prisma.EnumRideStatusFilter<"Ride"> | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFilter<"Ride"> | Date | string
@@ -277,6 +285,7 @@ export type RideOrderByWithRelationInput = {
   toId?: Prisma.SortOrder
   departureTime?: Prisma.SortOrder
   seatsAvailable?: Prisma.SortOrder
+  offeredSeats?: Prisma.SortOrder
   price?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -296,6 +305,7 @@ export type RideWhereUniqueInput = Prisma.AtLeast<{
   toId?: Prisma.IntFilter<"Ride"> | number
   departureTime?: Prisma.DateTimeFilter<"Ride"> | Date | string
   seatsAvailable?: Prisma.IntFilter<"Ride"> | number
+  offeredSeats?: Prisma.IntNullableListFilter<"Ride">
   price?: Prisma.IntFilter<"Ride"> | number
   status?: Prisma.EnumRideStatusFilter<"Ride"> | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFilter<"Ride"> | Date | string
@@ -312,6 +322,7 @@ export type RideOrderByWithAggregationInput = {
   toId?: Prisma.SortOrder
   departureTime?: Prisma.SortOrder
   seatsAvailable?: Prisma.SortOrder
+  offeredSeats?: Prisma.SortOrder
   price?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -332,6 +343,7 @@ export type RideScalarWhereWithAggregatesInput = {
   toId?: Prisma.IntWithAggregatesFilter<"Ride"> | number
   departureTime?: Prisma.DateTimeWithAggregatesFilter<"Ride"> | Date | string
   seatsAvailable?: Prisma.IntWithAggregatesFilter<"Ride"> | number
+  offeredSeats?: Prisma.IntNullableListFilter<"Ride">
   price?: Prisma.IntWithAggregatesFilter<"Ride"> | number
   status?: Prisma.EnumRideStatusWithAggregatesFilter<"Ride"> | $Enums.RideStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Ride"> | Date | string
@@ -340,6 +352,7 @@ export type RideScalarWhereWithAggregatesInput = {
 export type RideCreateInput = {
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -356,6 +369,7 @@ export type RideUncheckedCreateInput = {
   toId: number
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -365,6 +379,7 @@ export type RideUncheckedCreateInput = {
 export type RideUpdateInput = {
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -381,6 +396,7 @@ export type RideUncheckedUpdateInput = {
   toId?: Prisma.IntFieldUpdateOperationsInput | number
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -394,6 +410,7 @@ export type RideCreateManyInput = {
   toId: number
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -402,6 +419,7 @@ export type RideCreateManyInput = {
 export type RideUpdateManyMutationInput = {
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -414,6 +432,7 @@ export type RideUncheckedUpdateManyInput = {
   toId?: Prisma.IntFieldUpdateOperationsInput | number
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -429,6 +448,14 @@ export type RideOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type IntNullableListFilter<$PrismaModel = never> = {
+  equals?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel> | null
+  has?: number | Prisma.IntFieldRefInput<$PrismaModel> | null
+  hasEvery?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel>
+  hasSome?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel>
+  isEmpty?: boolean
+}
+
 export type RideCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   driverId?: Prisma.SortOrder
@@ -436,6 +463,7 @@ export type RideCountOrderByAggregateInput = {
   toId?: Prisma.SortOrder
   departureTime?: Prisma.SortOrder
   seatsAvailable?: Prisma.SortOrder
+  offeredSeats?: Prisma.SortOrder
   price?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -446,6 +474,7 @@ export type RideAvgOrderByAggregateInput = {
   fromId?: Prisma.SortOrder
   toId?: Prisma.SortOrder
   seatsAvailable?: Prisma.SortOrder
+  offeredSeats?: Prisma.SortOrder
   price?: Prisma.SortOrder
 }
 
@@ -478,6 +507,7 @@ export type RideSumOrderByAggregateInput = {
   fromId?: Prisma.SortOrder
   toId?: Prisma.SortOrder
   seatsAvailable?: Prisma.SortOrder
+  offeredSeats?: Prisma.SortOrder
   price?: Prisma.SortOrder
 }
 
@@ -612,6 +642,15 @@ export type RideUncheckedUpdateManyWithoutDriverNestedInput = {
   deleteMany?: Prisma.RideScalarWhereInput | Prisma.RideScalarWhereInput[]
 }
 
+export type RideCreateofferedSeatsInput = {
+  set: number[]
+}
+
+export type RideUpdateofferedSeatsInput = {
+  set?: number[]
+  push?: number | number[]
+}
+
 export type EnumRideStatusFieldUpdateOperationsInput = {
   set?: $Enums.RideStatus
 }
@@ -633,6 +672,7 @@ export type RideUpdateOneRequiredWithoutBookingsNestedInput = {
 export type RideCreateWithoutFromInput = {
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -647,6 +687,7 @@ export type RideUncheckedCreateWithoutFromInput = {
   toId: number
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -666,6 +707,7 @@ export type RideCreateManyFromInputEnvelope = {
 export type RideCreateWithoutToInput = {
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -680,6 +722,7 @@ export type RideUncheckedCreateWithoutToInput = {
   fromId: number
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -722,6 +765,7 @@ export type RideScalarWhereInput = {
   toId?: Prisma.IntFilter<"Ride"> | number
   departureTime?: Prisma.DateTimeFilter<"Ride"> | Date | string
   seatsAvailable?: Prisma.IntFilter<"Ride"> | number
+  offeredSeats?: Prisma.IntNullableListFilter<"Ride">
   price?: Prisma.IntFilter<"Ride"> | number
   status?: Prisma.EnumRideStatusFilter<"Ride"> | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFilter<"Ride"> | Date | string
@@ -746,6 +790,7 @@ export type RideUpdateManyWithWhereWithoutToInput = {
 export type RideCreateWithoutDriverInput = {
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -760,6 +805,7 @@ export type RideUncheckedCreateWithoutDriverInput = {
   toId: number
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -795,6 +841,7 @@ export type RideUpdateManyWithWhereWithoutDriverInput = {
 export type RideCreateWithoutBookingsInput = {
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -810,6 +857,7 @@ export type RideUncheckedCreateWithoutBookingsInput = {
   toId: number
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -834,6 +882,7 @@ export type RideUpdateToOneWithWhereWithoutBookingsInput = {
 export type RideUpdateWithoutBookingsInput = {
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -849,6 +898,7 @@ export type RideUncheckedUpdateWithoutBookingsInput = {
   toId?: Prisma.IntFieldUpdateOperationsInput | number
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -860,6 +910,7 @@ export type RideCreateManyFromInput = {
   toId: number
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -871,6 +922,7 @@ export type RideCreateManyToInput = {
   fromId: number
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -879,6 +931,7 @@ export type RideCreateManyToInput = {
 export type RideUpdateWithoutFromInput = {
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -893,6 +946,7 @@ export type RideUncheckedUpdateWithoutFromInput = {
   toId?: Prisma.IntFieldUpdateOperationsInput | number
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -905,6 +959,7 @@ export type RideUncheckedUpdateManyWithoutFromInput = {
   toId?: Prisma.IntFieldUpdateOperationsInput | number
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -913,6 +968,7 @@ export type RideUncheckedUpdateManyWithoutFromInput = {
 export type RideUpdateWithoutToInput = {
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -927,6 +983,7 @@ export type RideUncheckedUpdateWithoutToInput = {
   fromId?: Prisma.IntFieldUpdateOperationsInput | number
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -939,6 +996,7 @@ export type RideUncheckedUpdateManyWithoutToInput = {
   fromId?: Prisma.IntFieldUpdateOperationsInput | number
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -950,6 +1008,7 @@ export type RideCreateManyDriverInput = {
   toId: number
   departureTime: Date | string
   seatsAvailable: number
+  offeredSeats?: Prisma.RideCreateofferedSeatsInput | number[]
   price: number
   status?: $Enums.RideStatus
   createdAt?: Date | string
@@ -958,6 +1017,7 @@ export type RideCreateManyDriverInput = {
 export type RideUpdateWithoutDriverInput = {
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -972,6 +1032,7 @@ export type RideUncheckedUpdateWithoutDriverInput = {
   toId?: Prisma.IntFieldUpdateOperationsInput | number
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -984,6 +1045,7 @@ export type RideUncheckedUpdateManyWithoutDriverInput = {
   toId?: Prisma.IntFieldUpdateOperationsInput | number
   departureTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seatsAvailable?: Prisma.IntFieldUpdateOperationsInput | number
+  offeredSeats?: Prisma.RideUpdateofferedSeatsInput | number[]
   price?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRideStatusFieldUpdateOperationsInput | $Enums.RideStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1027,6 +1089,7 @@ export type RideSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   toId?: boolean
   departureTime?: boolean
   seatsAvailable?: boolean
+  offeredSeats?: boolean
   price?: boolean
   status?: boolean
   createdAt?: boolean
@@ -1044,6 +1107,7 @@ export type RideSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   toId?: boolean
   departureTime?: boolean
   seatsAvailable?: boolean
+  offeredSeats?: boolean
   price?: boolean
   status?: boolean
   createdAt?: boolean
@@ -1059,6 +1123,7 @@ export type RideSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   toId?: boolean
   departureTime?: boolean
   seatsAvailable?: boolean
+  offeredSeats?: boolean
   price?: boolean
   status?: boolean
   createdAt?: boolean
@@ -1074,12 +1139,13 @@ export type RideSelectScalar = {
   toId?: boolean
   departureTime?: boolean
   seatsAvailable?: boolean
+  offeredSeats?: boolean
   price?: boolean
   status?: boolean
   createdAt?: boolean
 }
 
-export type RideOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "driverId" | "fromId" | "toId" | "departureTime" | "seatsAvailable" | "price" | "status" | "createdAt", ExtArgs["result"]["ride"]>
+export type RideOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "driverId" | "fromId" | "toId" | "departureTime" | "seatsAvailable" | "offeredSeats" | "price" | "status" | "createdAt", ExtArgs["result"]["ride"]>
 export type RideInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   driver?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   from?: boolean | Prisma.LocationDefaultArgs<ExtArgs>
@@ -1113,6 +1179,7 @@ export type $RidePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     toId: number
     departureTime: Date
     seatsAvailable: number
+    offeredSeats: number[]
     price: number
     status: $Enums.RideStatus
     createdAt: Date
@@ -1549,6 +1616,7 @@ export interface RideFieldRefs {
   readonly toId: Prisma.FieldRef<"Ride", 'Int'>
   readonly departureTime: Prisma.FieldRef<"Ride", 'DateTime'>
   readonly seatsAvailable: Prisma.FieldRef<"Ride", 'Int'>
+  readonly offeredSeats: Prisma.FieldRef<"Ride", 'Int[]'>
   readonly price: Prisma.FieldRef<"Ride", 'Int'>
   readonly status: Prisma.FieldRef<"Ride", 'RideStatus'>
   readonly createdAt: Prisma.FieldRef<"Ride", 'DateTime'>

@@ -42,7 +42,8 @@ model Ride {
   fromId         Int
   toId           Int
   departureTime  DateTime   // stored as UTC
-  seatsAvailable Int
+  seatsAvailable Int        // kept for fast DB index filtering
+  offeredSeats   Int[]      // e.g. [1, 2, 3] — which seats the driver offers
   price          Int
   status         RideStatus @default(ACTIVE)
   createdAt      DateTime   @default(now())
@@ -67,6 +68,7 @@ model Booking {
   rideId      Int
   passengerId String
   seatsBooked Int           @default(1)
+  seatIds     Int[]         // e.g. [1] — which specific seat the passenger booked
   status      BookingStatus @default(PENDING)
   createdAt   DateTime      @default(now())
 

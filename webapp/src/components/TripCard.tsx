@@ -14,6 +14,7 @@ interface TripCardProps {
     id: number;
     price: number;
     seatsAvailable: number;
+    offeredSeats: number[];
     departureTime: string;
     from?: { name: string };
     to?: { name: string };
@@ -26,6 +27,7 @@ interface TripCardProps {
     id: number;
     passengerId: string;
     seatsBooked: number;
+    seatIds: number[];
     status: string;
     passenger?: {
       firstName: string;
@@ -56,26 +58,21 @@ export function TripCard({
   mode = 'passenger',
   isBooked = false,
 }: TripCardProps) {
-  // Map bookings to occupied seats (first passenger gets front, others get back)
+  // Map bookings to EXACT occupied seats using seatIds
   const occupiedSeats = bookings
     .filter((b) => b.status === 'APPROVED' || b.status === 'PENDING')
-    .flatMap((b, index) => {
-      const seats = [];
-      for (let i = 0; i < b.seatsBooked; i++) {
-        const seatId = index === 0 && i === 0 ? 1 : i === 0 ? 2 : 3;
-        seats.push({ seatId, booking: b });
-      }
-      return seats;
-    });
+    .flatMap((b) => (b.seatIds || []).map((seatId) => ({ seatId, booking: b })));
 
   const passengers: Passenger[] = bookings
     .filter((b) => b.status === 'APPROVED' || b.status === 'PENDING')
-    .map((b, index) => ({
-      id: b.passengerId,
-      firstName: b.passenger?.firstName ?? 'Пассажир',
-      lastName: b.passenger?.lastName ?? '',
-      seatId: index === 0 ? 1 : index === 1 ? 2 : 3,
-    }));
+    .flatMap((b) =>
+      (b.seatIds || []).map((seatId) => ({
+        id: `${b.passengerId}-${seatId}`,
+        firstName: b.passenger?.firstName ?? 'Пассажир',
+        lastName: b.passenger?.lastName ?? '',
+        seatId,
+      })),
+    );
 
   return (
     <Card mode="shadow">
@@ -106,6 +103,7 @@ export function TripCard({
             seats={SEATS}
             selectedSeats={selectedSeats}
             occupiedSeats={occupiedSeats}
+            offeredSeats={ride.offeredSeats}
             maxSeats={3}
             onSelectSeat={onSelectSeat}
             mode={mode === 'passenger' && !isBooked ? 'select' : 'view'}

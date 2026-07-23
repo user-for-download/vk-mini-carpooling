@@ -47,7 +47,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     setLoading(true);
     setError(null);
     try {
-      await createBooking({ rideId: ride.id, seatsBooked: selectedSeats.length });
+      await createBooking({ rideId: ride.id, seatIds: selectedSeats });
       const updatedBookings = await listMyBookings();
       setMyBookings(updatedBookings);
       setSelectedSeats([]);
