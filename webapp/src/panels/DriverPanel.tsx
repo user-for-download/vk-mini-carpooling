@@ -37,7 +37,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
     fromId: '',
     toId: '',
     departureTime: '',
-    offeredSeats: [1, 2, 3, 4, 5],
+    offeredSeats: [2, 3, 4, 5], // Seat 1 is driver, not offered to passengers
     price: 0,
     driverNote: '',
   });
@@ -75,7 +75,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
         price: form.price,
         driverNote: form.driverNote || undefined,
       });
-      setForm({ fromId: '', toId: '', departureTime: '', offeredSeats: [1, 2, 3, 4, 5], price: 0, driverNote: '' });
+      setForm({ fromId: '', toId: '', departureTime: '', offeredSeats: [2, 3, 4, 5], price: 0, driverNote: '' });
       setView('list');
       await refresh();
     } catch (err: any) {

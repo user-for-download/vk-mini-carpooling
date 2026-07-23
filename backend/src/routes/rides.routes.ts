@@ -19,7 +19,11 @@ ridesRoutes.onError((err, c) => {
   throw err;
 });
 
-ridesRoutes.get('/', vkAuthMiddleware, zValidator('query', SearchRidesSchema), async (c) => {
+ridesRoutes.get('/', vkAuthMiddleware, zValidator('query', SearchRidesSchema, (result, c) => {
+  if (!result.success) {
+    return c.json({ error: 'VALIDATION_ERROR', message: result.error.issues[0].message }, 400);
+  }
+}), async (c) => {
   const query = c.req.valid('query');
   const rides = await searchRides(query);
   return c.json(rides);
@@ -39,7 +43,11 @@ ridesRoutes.get('/:id', vkAuthMiddleware, async (c) => {
   return c.json(ride);
 });
 
-ridesRoutes.post('/', vkAuthMiddleware, zValidator('json', CreateRideSchema), async (c) => {
+ridesRoutes.post('/', vkAuthMiddleware, zValidator('json', CreateRideSchema, (result, c) => {
+  if (!result.success) {
+    return c.json({ error: 'VALIDATION_ERROR', message: result.error.issues[0].message }, 400);
+  }
+}), async (c) => {
   const driverId = c.get('userId');
   const body = c.req.valid('json');
   const ride = await createRide(driverId, body);

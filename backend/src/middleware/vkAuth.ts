@@ -19,10 +19,10 @@ export const vkAuthMiddleware = createMiddleware<{ Variables: Variables }>(async
   }
 
   const launchParams = authHeader.slice('Bearer '.length);
-  const searchParams = new URLSearchParams(launchParams);
 
   // --- Mock mode: trust the client, skip HMAC ---
   if (env.VK_AUTH_MOCK_ENABLED) {
+    const searchParams = new URLSearchParams(launchParams);
     const userId = searchParams.get('vk_user_id') ?? '123456789';
     c.set('userId', userId);
     c.set('vkPlatform', searchParams.get('vk_platform') ?? undefined);
@@ -30,18 +30,31 @@ export const vkAuthMiddleware = createMiddleware<{ Variables: Variables }>(async
   }
 
   // --- Production mode: full VK signature verification ---
-  const sign = searchParams.get('sign');
-  const queryParams: { key: string; value: string }[] = [];
-  for (const [key, value] of searchParams.entries()) {
-    if (key.startsWith('vk_')) queryParams.push({ key, value });
+  // Parse raw string to preserve exact encoding VK signed
+  const params = launchParams.split('&');
+  const signParam = params.find((p) => p.startsWith('sign='));
+  const sign = signParam ? signParam.slice('sign='.length) : null;
+
+  // Extract all vk_ params preserving raw encoding
+  const vkParams: { key: string; value: string }[] = [];
+  for (const param of params) {
+    const eqIdx = param.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = param.slice(0, eqIdx);
+    const value = param.slice(eqIdx + 1);
+    if (key.startsWith('vk_') && key !== 'sign') {
+      vkParams.push({ key, value });
+    }
   }
-  if (!sign || queryParams.length === 0) {
+
+  if (!sign || vkParams.length === 0) {
     return c.json({ error: 'Missing launch params' }, 401);
   }
 
-  const signString = queryParams
+  // Build sign string using raw values (preserving VK's exact encoding)
+  const signString = vkParams
     .sort((a, b) => a.key.localeCompare(b.key))
-    .map(({ key, value }) => `${key}=${encodeURIComponent(value)}`)
+    .map(({ key, value }) => `${key}=${value}`)
     .join('&');
 
   const computedSign = createHmac('sha256', env.VK_APP_SECRET)
@@ -51,10 +64,9 @@ export const vkAuthMiddleware = createMiddleware<{ Variables: Variables }>(async
     .replace(/\//g, '_')
     .replace(/=$/, '');
 
-  // Constant-time comparison to prevent timing attacks (M3)
+  // Constant-time comparison to prevent timing attacks
   const computedBuf = Buffer.from(computedSign);
   const signBuf = Buffer.from(sign);
-  // HMAC-SHA256 base64 is always 44 chars; reject mismatched lengths immediately
   if (computedBuf.length !== signBuf.length) {
     return c.json({ error: 'Invalid sign' }, 403);
   }
@@ -62,17 +74,24 @@ export const vkAuthMiddleware = createMiddleware<{ Variables: Variables }>(async
     return c.json({ error: 'Invalid sign' }, 403);
   }
 
-  const vkTs = searchParams.get('vk_ts');
+  // Extract vk_ts from raw params
+  const tsParam = params.find((p) => p.startsWith('vk_ts='));
+  const vkTs = tsParam ? tsParam.slice('vk_ts='.length) : null;
   if (!vkTs || Math.floor(Date.now() / 1000) - parseInt(vkTs, 10) > MAX_LAUNCH_PARAMS_AGE_SECONDS) {
     return c.json({ error: 'Launch params expired' }, 401);
   }
 
-  const userId = searchParams.get('vk_user_id');
+  // Extract vk_user_id from raw params
+  const userIdParam = params.find((p) => p.startsWith('vk_user_id='));
+  const userId = userIdParam ? userIdParam.slice('vk_user_id='.length) : null;
   if (!userId) {
     return c.json({ error: 'Missing vk_user_id' }, 401);
   }
 
+  const platformParam = params.find((p) => p.startsWith('vk_platform='));
+  const platform = platformParam ? platformParam.slice('vk_platform='.length) : undefined;
+
   c.set('userId', userId);
-  c.set('vkPlatform', searchParams.get('vk_platform') ?? undefined);
+  c.set('vkPlatform', platform);
   await next();
 });

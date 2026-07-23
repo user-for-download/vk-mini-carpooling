@@ -15,6 +15,12 @@ const STATUS_BY_ERROR_CODE = {
   TIME_CONFLICT: 409,
 } as const;
 
+const validationHandler = (result: { success: boolean; error?: { issues: Array<{ message: string }> } }, c: any) => {
+  if (!result.success && result.error) {
+    return c.json({ error: 'VALIDATION_ERROR', message: result.error.issues[0].message }, 400);
+  }
+};
+
 bookingsRoutes.onError((err, c) => {
   if (err instanceof BookingError) {
     return c.json({ error: err.code, message: err.message }, STATUS_BY_ERROR_CODE[err.code]);
@@ -28,14 +34,14 @@ bookingsRoutes.get('/mine', vkAuthMiddleware, async (c) => {
   return c.json(bookings);
 });
 
-bookingsRoutes.post('/', vkAuthMiddleware, zValidator('json', CreateBookingSchema), async (c) => {
+bookingsRoutes.post('/', vkAuthMiddleware, zValidator('json', CreateBookingSchema, validationHandler), async (c) => {
   const passengerId = c.get('userId');
   const body = c.req.valid('json');
   const booking = await createBooking(passengerId, body);
   return c.json(booking, 201);
 });
 
-bookingsRoutes.patch('/:id/status', vkAuthMiddleware, zValidator('json', UpdateBookingStatusSchema), async (c) => {
+bookingsRoutes.patch('/:id/status', vkAuthMiddleware, zValidator('json', UpdateBookingStatusSchema, validationHandler), async (c) => {
   const driverId = c.get('userId');
   const bookingId = Number(c.req.param('id'));
   if (Number.isNaN(bookingId)) return c.json({ error: 'Invalid booking id' }, 400);
@@ -44,7 +50,7 @@ bookingsRoutes.patch('/:id/status', vkAuthMiddleware, zValidator('json', UpdateB
   return c.json(booking);
 });
 
-bookingsRoutes.patch('/:id', vkAuthMiddleware, zValidator('json', UpdateBookingSchema), async (c) => {
+bookingsRoutes.patch('/:id', vkAuthMiddleware, zValidator('json', UpdateBookingSchema, validationHandler), async (c) => {
   const passengerId = c.get('userId');
   const bookingId = Number(c.req.param('id'));
   if (Number.isNaN(bookingId)) return c.json({ error: 'Invalid booking id' }, 400);

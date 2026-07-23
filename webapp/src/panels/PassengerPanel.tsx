@@ -30,6 +30,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const { locations, loading: locationsLoading, error: locationsError } = useLocations();
   const [fromId, setFromId] = useState<string>('');
   const [toId, setToId] = useState<string>('');
+  const [date, setDate] = useState<string>('');
   const [rides, setRides] = useState<RideDTO[] | null>(null);
   const [myBookings, setMyBookings] = useState<BookingDTO[]>([]);
   const [loading, setLoading] = useState(false);
@@ -71,6 +72,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
       const results = await searchRides({
         fromId: fromId ? Number(fromId) : undefined,
         toId: toId ? Number(toId) : undefined,
+        date: date || undefined,
       }, controller.signal);
       if (!controller.signal.aborted) {
         setRides(results);
@@ -209,6 +211,22 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                   onChange={(e) => setToId(e.target.value)}
                   options={locations.map((l) => ({ label: l.name, value: String(l.id) }))}
                   disabled={locationsLoading}
+                />
+              </FormItem>
+
+              <FormItem top="Дата (необязательно)">
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--vkui-color-separator)',
+                    background: 'var(--vkui-color-background-primary)',
+                    fontSize: '16px',
+                  }}
                 />
               </FormItem>
 

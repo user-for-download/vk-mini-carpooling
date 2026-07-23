@@ -23,7 +23,12 @@ export function RoleSelector(props: React.ComponentProps<typeof PanelType>) {
           mode="shadow"
           style={{ cursor: 'pointer', marginBottom: 16 }}
           onClick={() => routeNavigator.push('/passenger')}
-          onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') routeNavigator.push('/passenger'); }}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              routeNavigator.push('/passenger');
+            }
+          }}
           tabIndex={0}
           role="button"
           aria-label="Пассажир — найти поездку"
@@ -59,7 +64,12 @@ export function RoleSelector(props: React.ComponentProps<typeof PanelType>) {
           mode="shadow"
           style={{ cursor: 'pointer' }}
           onClick={() => routeNavigator.push('/driver')}
-          onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') routeNavigator.push('/driver'); }}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              routeNavigator.push('/driver');
+            }
+          }}
           tabIndex={0}
           role="button"
           aria-label="Водитель — предложить поездку"

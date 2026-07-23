@@ -176,7 +176,7 @@ export async function updateBookingStatus(input: {
         }
 
         await tx.ride.update({
-          where: { id: booking.rideId },
+          where: { id: booking.rideId, seatsAvailable: { gte: booking.seatsBooked } },
           data: { seatsAvailable: { decrement: booking.seatsBooked } },
         });
       }
@@ -202,6 +202,7 @@ export async function listMyBookings(passengerId: string) {
     where: { passengerId },
     orderBy: { createdAt: 'desc' },
     include: { ride: { include: { from: true, to: true } } },
+    take: 100, // Limit to prevent unbounded queries
   });
 }
 

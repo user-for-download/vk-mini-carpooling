@@ -88,7 +88,9 @@ export function CarSeatMap({
   function getSeatStatus(seatId: number): SeatStatus {
     const seat = seats.find((s) => s.id === seatId);
     if (seat?.position === 'driver') return 'driver';
-    if (mode !== 'create' && offeredSeats && offeredSeats.length > 0 && !offeredSeats.includes(seatId)) return 'unoffered';
+    // In create mode, show unselected seats as unoffered
+    if (mode === 'create' && !selectedSeats.includes(seatId)) return 'unoffered';
+    if (offeredSeats && offeredSeats.length > 0 && !offeredSeats.includes(seatId)) return 'unoffered';
     if (occupiedSet.has(seatId)) return 'occupied';
     if (selectedSeats.includes(seatId)) return 'selected';
     return 'available';

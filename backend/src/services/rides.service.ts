@@ -51,6 +51,23 @@ export async function createRide(driverId: string, input: CreateRideInput) {
   if (!fromLoc) throw new RideError('NOT_FOUND', `Location with id ${input.fromId} not found`);
   if (!toLoc) throw new RideError('NOT_FOUND', `Location with id ${input.toId} not found`);
 
+  // Check for driver time conflicts (4-hour window)
+  const departureTime = new Date(input.departureTime);
+  const CONFLICT_WINDOW_MS = 4 * 60 * 60 * 1000;
+  const conflictingRide = await prisma.ride.findFirst({
+    where: {
+      driverId,
+      status: RIDE_STATUS.ACTIVE,
+      departureTime: {
+        gte: new Date(departureTime.getTime() - CONFLICT_WINDOW_MS),
+        lte: new Date(departureTime.getTime() + CONFLICT_WINDOW_MS),
+      },
+    },
+  });
+  if (conflictingRide) {
+    throw new RideError('FORBIDDEN', 'You already have an active ride near this time');
+  }
+
   return prisma.ride.create({
     data: {
       driverId,
@@ -88,9 +105,9 @@ export async function listMyRides(driverId: string) {
     include: {
       from: true,
       to: true,
-      // Only return approved bookings for driver view
+      // Only return pending and approved bookings (hide cancelled/rejected)
       bookings: {
-        where: { status: BOOKING_STATUS.APPROVED },
+        where: { status: { in: [BOOKING_STATUS.PENDING, BOOKING_STATUS.APPROVED] } },
         include: { passenger: true },
       },
     },
