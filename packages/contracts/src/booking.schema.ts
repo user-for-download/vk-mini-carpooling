@@ -38,6 +38,12 @@ const RideRefSchema = z.object({
   to: LocationDTOSchema.optional(),
 });
 
+/** Minimal passenger reference embedded in BookingDTO. */
+const PassengerRefSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+});
+
 export const BookingDTOSchema = z.object({
   id: z.number().int(),
   rideId: z.number().int(),
@@ -47,5 +53,6 @@ export const BookingDTOSchema = z.object({
   passengerNote: z.string().nullable().optional(),
   status: BookingStatusSchema,
   ride: RideRefSchema.optional(),
+  passenger: PassengerRefSchema.optional(),
 });
 export type BookingDTO = z.infer<typeof BookingDTOSchema>;

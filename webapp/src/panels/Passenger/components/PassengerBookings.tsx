@@ -23,7 +23,7 @@ export function PassengerBookings({ bookings, isLoading, onRefresh, onCancelClic
     <Div style={{ paddingBottom: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <Title level="3">Мои бронирования ({activeBookings.length}/{MAX_BOOKING_COUNT})</Title>
-        <Button size="s" mode="refresh" onClick={onRefresh} disabled={isLoading}>
+        <Button size="s" mode="secondary" onClick={onRefresh} disabled={isLoading}>
           Обновить
         </Button>
       </div>
