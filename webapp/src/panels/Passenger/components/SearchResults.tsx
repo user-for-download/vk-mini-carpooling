@@ -1,10 +1,9 @@
 import { useContext } from 'react';
-import { Div, Card, Title, Text, Button } from '@vkontakte/vkui';
+import { Div, Title, Text, Button } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import type { RideDTO } from '@local-blablacar/contracts';
 import { TripListItem } from '../../../components/TripListItem';
 import { DataContext } from '../../../context/dataContext';
-import { formatRideDateTime } from '../../../utils/format';
 
 interface Props {
   rides: RideDTO[];
@@ -27,35 +26,27 @@ export function SearchResults({ rides, fromId, toId, date, isBooked, onNewSearch
   if (rides.length === 0) {
     return (
       <Div style={{ paddingBottom: 100 }}>
-        <Card mode="shadow" style={{ textAlign: 'center', padding: 40 }}>
-          <Title level="3" style={{ marginBottom: 8 }}>Ничего не найдено</Title>
-          <Text style={{ color: 'var(--vkui-color-text-secondary)', marginBottom: 24 }}>
-            Попробуйте выбрать другие точки
-          </Text>
-          <Button size="l" mode="primary" appearance="positive" onClick={onNewSearch}>
-            Новый поиск
-          </Button>
-        </Card>
+        <Title level="3" style={{ marginBottom: 8 }}>Ничего не найдено</Title>
+        <Text style={{ color: 'var(--vkui-color-text-secondary)', marginBottom: 24 }}>
+          Попробуйте выбрать другие точки
+        </Text>
+        <Button size="l" mode="primary" appearance="positive" onClick={onNewSearch}>
+          Новый поиск
+        </Button>
       </Div>
     );
   }
 
   return (
     <Div style={{ paddingBottom: 100 }}>
-      {/* Search summary */}
-      <Card mode="shadow" style={{ marginBottom: 12 }}>
-        <Div style={{ padding: '12px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Text style={{ fontWeight: 600, fontSize: 15 }}>{fromName}</Text>
-            <Text style={{ color: 'var(--vkui-color-text-secondary)' }}>→</Text>
-            <Text style={{ fontWeight: 600, fontSize: 15 }}>{toName}</Text>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>{dateLabel}</Text>
-            <Button size="s" mode="tertiary" onClick={onNewSearch}>Изменить</Button>
-          </div>
-        </Div>
-      </Card>
+      {/* Search summary - plain text */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div>
+          <Text style={{ fontWeight: 600 }}>{fromName} → {toName}</Text>
+          <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>{dateLabel}</Text>
+        </div>
+        <Button size="s" mode="tertiary" onClick={onNewSearch}>Изменить</Button>
+      </div>
 
       <Text style={{ color: 'var(--vkui-color-text-secondary)', marginBottom: 8 }}>
         Найдено: {rides.length} {rides.length === 1 ? 'поездка' : rides.length < 5 ? 'поездки' : 'поездок'}
