@@ -202,7 +202,6 @@ export function CarSeatMap({
       }}>
         <LegendItem status="available" text="Доступно" />
         {mode === 'select' && <LegendItem status="selected" text="Выбрано" />}
-        <LegendItem status="occupied" text="Занято" />
         <LegendItem status="driver" text="Водитель" />
       </div>
 
