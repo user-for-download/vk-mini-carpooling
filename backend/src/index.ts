@@ -13,6 +13,14 @@ const app = new Hono();
 app.use('*', logger());
 app.use('*', cors({ origin: corsOrigins, allowHeaders: ['Content-Type', 'Authorization'] }));
 
+// Security headers (L12)
+app.use('*', async (c, next) => {
+  c.header('X-Content-Type-Options', 'nosniff');
+  c.header('X-Frame-Options', 'DENY');
+  c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  await next();
+});
+
 app.onError(errorHandler);
 
 app.get('/health', (c) => c.json({ ok: true }));

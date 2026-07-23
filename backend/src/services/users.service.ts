@@ -25,3 +25,8 @@ export async function ensureUser(input: {
     },
   });
 }
+
+/** Read-only user lookup — does not mutate state (used by GET /me). */
+export async function getUserById(id: string) {
+  return prisma.user.findUnique({ where: { id } });
+}

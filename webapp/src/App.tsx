@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import bridge from '@vkontakte/vk-bridge';
 import { RouterProvider, useActiveVkuiLocation, useGetPanelForView } from '@vkontakte/vk-mini-apps-router';
 import {
@@ -14,6 +14,32 @@ import { RoleSelector } from './panels/RoleSelector';
 import { PassengerPanel } from './panels/PassengerPanel';
 import { DriverPanel } from './panels/DriverPanel';
 import { RideDetails } from './panels/RideDetails';
+
+// Error boundary to prevent white screen crashes (H24)
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[ErrorBoundary]', error, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <h2>Что-то пошло не так</h2>
+          <p style={{ color: '#818c99' }}>Попробуйте перезагрузить страницу</p>
+          <button onClick={() => window.location.reload()}>Перезагрузить</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function useVkAppearance(): AppearanceType {
   const [appearance, setAppearance] = useState<AppearanceType>('light');
@@ -55,14 +81,16 @@ export const App = () => {
   const appearance = useVkAppearance();
 
   return (
-    <ConfigProvider appearance={appearance}>
-      <AdaptivityProvider>
-        <AppRoot>
-          <RouterProvider router={router}>
-            <Layout />
-          </RouterProvider>
-        </AppRoot>
-      </AdaptivityProvider>
-    </ConfigProvider>
+    <ErrorBoundary>
+      <ConfigProvider appearance={appearance}>
+        <AdaptivityProvider>
+          <AppRoot>
+            <RouterProvider router={router}>
+              <Layout />
+            </RouterProvider>
+          </AppRoot>
+        </AdaptivityProvider>
+      </ConfigProvider>
+    </ErrorBoundary>
   );
 };

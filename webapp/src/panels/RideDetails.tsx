@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Panel as PanelType,
   PanelHeader,
@@ -26,13 +26,32 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [passengerNote, setPassengerNote] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const ignoreRef = useRef(false);
 
   useEffect(() => {
     if (!params?.id) return;
-    getRide(Number(params.id))
-      .then(setRide)
-      .catch(() => setNotFound(true));
-    listMyBookings().then(setMyBookings).catch(console.error);
+    ignoreRef.current = false;
+    // Reset state on param change (H12, H19)
+    setRide(null);
+    setNotFound(false);
+    setError(null);
+    setSelectedSeats([]);
+    setPassengerNote('');
+
+    const rideId = Number(params.id);
+    if (Number.isNaN(rideId)) {
+      setNotFound(true);
+      return;
+    }
+
+    getRide(rideId)
+      .then((data) => { if (!ignoreRef.current) setRide(data); })
+      .catch(() => { if (!ignoreRef.current) setNotFound(true); });
+    listMyBookings()
+      .then((data) => { if (!ignoreRef.current) setMyBookings(data); })
+      .catch(console.error);
+
+    return () => { ignoreRef.current = true; };
   }, [params?.id]);
 
   function isBooked(rideId: number): boolean {
@@ -86,7 +105,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
 
   return (
     <PanelType {...props}>
-      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.back()} />}>
+      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/passenger')} />}>
         Детали поездки
       </PanelHeader>
 

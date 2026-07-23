@@ -2,6 +2,7 @@ import axios from 'axios';
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
+  timeout: 10000, // 10s request timeout (M21)
 });
 
 // VK's own recommended pattern (github.com/VKCOM/vk-apps-launch-params):
@@ -26,3 +27,14 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
+// Global response error interceptor (M22)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject(new Error('Сервер не отвечает. Попробуйте позже.'));
+    }
+    return Promise.reject(error);
+  },
+);

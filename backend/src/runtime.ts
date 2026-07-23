@@ -15,7 +15,15 @@ const EnvSchema = z.object({
   MAX_BOOKING_COUNT: z.coerce.number().int().min(1).default(MAX_BOOKING_COUNT),
 });
 
-export const env = EnvSchema.parse(process.env);
+const parsedEnv = EnvSchema.safeParse(process.env);
+if (!parsedEnv.success) {
+  console.error('❌ Environment validation failed:');
+  for (const issue of parsedEnv.error.issues) {
+    console.error(`  - ${issue.path.join('.')}: ${issue.message}`);
+  }
+  process.exit(1);
+}
+export const env = parsedEnv.data;
 
 // --- Production safety gate ---
 if (env.VK_AUTH_MOCK_ENABLED && process.env.NODE_ENV === 'production') {
@@ -32,7 +40,9 @@ if (env.VK_AUTH_MOCK_ENABLED) {
 // Auto-trust Vite dev server origin outside production so browsers at
 // localhost:5173 don't hit CORS errors. Production keeps the strict list.
 const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
-const configuredOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim());
+const configuredOrigins = env.CORS_ORIGINS.split(',')
+  .map((o) => o.trim())
+  .filter(Boolean); // filter out empty strings from trailing commas
 export const corsOrigins =
   process.env.NODE_ENV === 'production' ? configuredOrigins : [...configuredOrigins, ...DEV_ORIGINS];
 
@@ -40,3 +50,10 @@ export const corsOrigins =
 // PostgreSQL connection pooling via the `pg` driver.
 const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
 export const prisma = new PrismaClient({ adapter });
+
+// Graceful Prisma shutdown (M4)
+function shutdown() {
+  prisma.$disconnect().catch(() => {});
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

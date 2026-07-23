@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Panel as PanelType,
   PanelHeader,
@@ -10,6 +10,7 @@ import {
   Div,
   Card,
   FormItem,
+  Spinner,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import type { RideDTO, BookingDTO } from '@local-blablacar/contracts';
@@ -18,7 +19,7 @@ import { searchRides } from '../api/rides';
 import { createBooking, cancelBooking as cancelBookingApi, listMyBookings } from '../api/bookings';
 import { TripCard } from '../components/TripCard';
 import { useLocations } from '../hooks/useLocations';
-import { formatRideDateTime } from '../utils/format';
+import { formatRideDateTime, formatPrice } from '../utils/format';
 import '../styles.css';
 
 type View = 'search' | 'results' | 'bookings';
@@ -26,7 +27,7 @@ type View = 'search' | 'results' | 'bookings';
 export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
   const [view, setView] = useState<View>('search');
-  const locations = useLocations();
+  const { locations, loading: locationsLoading, error: locationsError } = useLocations();
   const [fromId, setFromId] = useState<string>('');
   const [toId, setToId] = useState<string>('');
   const [rides, setRides] = useState<RideDTO[] | null>(null);
@@ -35,12 +36,28 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const [bookingLoading, setBookingLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Record<number, number[]>>({});
+  const ignoreRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    listMyBookings().then(setMyBookings).catch(console.error);
+    ignoreRef.current = false;
+    listMyBookings()
+      .then((data) => { if (!ignoreRef.current) setMyBookings(data); })
+      .catch((err) => {
+        if (!ignoreRef.current) {
+          console.error(err);
+          setError('Не удалось загрузить бронирования');
+        }
+      });
+    return () => { ignoreRef.current = true; };
   }, []);
 
   async function handleSearch() {
+    // Abort any previous in-flight search
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setError(null);
     try {
@@ -48,18 +65,24 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
         fromId: fromId ? Number(fromId) : undefined,
         toId: toId ? Number(toId) : undefined,
       });
-      setRides(results);
-      setView('results');
-    } catch (err) {
+      if (!controller.signal.aborted) {
+        setRides(results);
+        setView('results');
+      }
+    } catch (err: any) {
+      if (controller.signal.aborted) return;
       console.error('Search error:', err);
+      setError('Не удалось выполнить поиск. Попробуйте позже.');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }
 
   async function handleBook(rideId: number) {
     const seats = selectedSeats[rideId] || [];
     if (seats.length === 0) return;
+    // Prevent double-click (M7)
+    if (bookingLoading === rideId) return;
     setBookingLoading(rideId);
     setError(null);
     try {
@@ -85,6 +108,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
 
   async function handleCancelBooking(bookingId: number) {
     if (!window.confirm('Вы уверены, что хотите отменить бронирование?')) return;
+    setError(null); // Clear previous errors (L12)
     try {
       await cancelBookingApi(bookingId);
       const updatedBookings = await listMyBookings();
@@ -96,9 +120,14 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   }
 
   async function showMyBookings() {
-    const updatedBookings = await listMyBookings();
-    setMyBookings(updatedBookings);
-    setView('bookings');
+    try {
+      const updatedBookings = await listMyBookings();
+      setMyBookings(updatedBookings);
+      setView('bookings');
+    } catch (err) {
+      console.error(err);
+      setError('Не удалось загрузить бронирования');
+    }
   }
 
   const activeBookingCount = myBookings.filter(
@@ -151,12 +180,18 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                 </Text>
               </div>
 
+              {locationsError && (
+                <Text style={{ color: 'var(--vkui-color-text-negative)', marginBottom: 12 }}>
+                  {locationsError}
+                </Text>
+              )}
               <FormItem top="Откуда">
                 <Select
                   placeholder="Выберите точку"
                   value={fromId}
                   onChange={(e) => setFromId(e.target.value)}
                   options={locations.map((l) => ({ label: l.name, value: String(l.id) }))}
+                  disabled={locationsLoading}
                 />
               </FormItem>
 
@@ -166,6 +201,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                   value={toId}
                   onChange={(e) => setToId(e.target.value)}
                   options={locations.map((l) => ({ label: l.name, value: String(l.id) }))}
+                  disabled={locationsLoading}
                 />
               </FormItem>
 
@@ -237,7 +273,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <Title level="3" style={{ color: 'var(--vkui-color-text-accent)', marginBottom: 4 }}>
-                            {ride.price} ₽
+                            {formatPrice(ride.price)}
                           </Title>
                           <Text style={{ marginBottom: 4 }}>
                             {ride.from?.name} → {ride.to?.name}
@@ -313,7 +349,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                         {booking.ride?.departureTime
                           ? formatRideDateTime(booking.ride.departureTime)
                           : '—'}
-                        {' · '}{booking.seatsBooked} мест · {booking.ride?.price} ₽
+                        {' · '}{booking.seatsBooked} мест · {booking.ride?.price != null ? formatPrice(booking.ride.price) : '—'}
                       </Text>
                       <Text style={{
                         fontSize: 12,

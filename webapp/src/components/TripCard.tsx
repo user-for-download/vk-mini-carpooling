@@ -1,6 +1,7 @@
 import { Text, Title, Div, Card, Button, FormItem, Textarea } from '@vkontakte/vkui';
 import { CarSeatMap } from './CarSeatMap';
-import { formatRideDateTime } from '../utils/format';
+import { formatRideDateTime, formatPrice } from '../utils/format';
+import { SEATS } from '../utils/constants';
 
 interface Passenger {
   id: string;
@@ -42,14 +43,6 @@ interface TripCardProps {
   isBooked?: boolean;
 }
 
-const SEATS = [
-  { id: 1, label: 'В', position: 'driver' as const },
-  { id: 2, label: 'ПП', position: 'front-passenger' as const },
-  { id: 3, label: 'ЗЛ', position: 'rear-left' as const },
-  { id: 4, label: 'ЗЦ', position: 'rear-center' as const },
-  { id: 5, label: 'ЗП', position: 'rear-right' as const },
-];
-
 export function TripCard({
   ride,
   bookings = [],
@@ -86,7 +79,7 @@ export function TripCard({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
             <Title level="3" style={{ color: 'var(--vkui-color-text-accent)', marginBottom: 4 }}>
-              {ride.price} ₽
+              {formatPrice(ride.price)}
             </Title>
             <Text style={{ marginBottom: 4 }}>{ride.from?.name} → {ride.to?.name}</Text>
             <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
@@ -105,7 +98,6 @@ export function TripCard({
             selectedSeats={selectedSeats}
             occupiedSeats={occupiedSeats}
             offeredSeats={ride.offeredSeats}
-            maxSeats={5}
             onSelectSeat={onSelectSeat}
             mode={mode === 'passenger' && !isBooked ? 'select' : 'view'}
           />

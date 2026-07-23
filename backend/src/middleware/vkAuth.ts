@@ -1,5 +1,5 @@
 import { createMiddleware } from 'hono/factory';
-import { createHmac } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { env } from '../runtime';
 
 const MAX_LAUNCH_PARAMS_AGE_SECONDS = 86400; // 24h
@@ -25,7 +25,7 @@ export const vkAuthMiddleware = createMiddleware<{ Variables: Variables }>(async
   if (env.VK_AUTH_MOCK_ENABLED) {
     const userId = searchParams.get('vk_user_id') ?? '123456789';
     c.set('userId', userId);
-    c.set('vkPlatform', undefined);
+    c.set('vkPlatform', searchParams.get('vk_platform') ?? undefined);
     return await next();
   }
 
@@ -51,7 +51,13 @@ export const vkAuthMiddleware = createMiddleware<{ Variables: Variables }>(async
     .replace(/\//g, '_')
     .replace(/=$/, '');
 
-  if (computedSign !== sign) {
+  // Constant-time comparison to prevent timing attacks (M3)
+  const computedBuf = Buffer.from(computedSign);
+  const signBuf = Buffer.from(sign);
+  const maxLen = Math.max(computedBuf.length, signBuf.length);
+  const cmpA = Buffer.alloc(maxLen, computedBuf);
+  const cmpB = Buffer.alloc(maxLen, signBuf);
+  if (!timingSafeEqual(cmpA, cmpB)) {
     return c.json({ error: 'Invalid sign' }, 403);
   }
 

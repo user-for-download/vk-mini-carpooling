@@ -38,6 +38,7 @@ bookingsRoutes.post('/', vkAuthMiddleware, zValidator('json', CreateBookingSchem
 bookingsRoutes.patch('/:id/status', vkAuthMiddleware, zValidator('json', UpdateBookingStatusSchema), async (c) => {
   const driverId = c.get('userId');
   const bookingId = Number(c.req.param('id'));
+  if (Number.isNaN(bookingId)) return c.json({ error: 'Invalid booking id' }, 400);
   const body = c.req.valid('json');
   const booking = await updateBookingStatus({ driverId, bookingId, status: body.status });
   return c.json(booking);
@@ -46,6 +47,7 @@ bookingsRoutes.patch('/:id/status', vkAuthMiddleware, zValidator('json', UpdateB
 bookingsRoutes.delete('/:id', vkAuthMiddleware, async (c) => {
   const passengerId = c.get('userId');
   const bookingId = Number(c.req.param('id'));
+  if (Number.isNaN(bookingId)) return c.json({ error: 'Invalid booking id' }, 400);
   const booking = await cancelBooking(passengerId, bookingId);
   return c.json(booking);
 });

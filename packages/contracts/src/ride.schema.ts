@@ -8,9 +8,11 @@ export type RideStatus = z.infer<typeof RideStatusSchema>;
 
 /** What the driver submits from the "Create ride" form. */
 export const CreateRideSchema = z.object({
-  fromId: z.number().int(),
-  toId: z.number().int(),
-  departureTime: z.string().datetime(),
+  fromId: z.number().int().positive(),
+  toId: z.number().int().positive(),
+  departureTime: z.string().datetime().refine((val) => new Date(val) > new Date(), {
+    message: 'Departure time must be in the future',
+  }),
   offeredSeats: z.array(z.number().int()).min(1).max(5),
   price: z.number().int().min(0).max(1_000_000),
   driverNote: z.string().max(500).optional(),

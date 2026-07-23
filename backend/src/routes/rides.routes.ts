@@ -32,7 +32,9 @@ ridesRoutes.get('/mine', vkAuthMiddleware, async (c) => {
 });
 
 ridesRoutes.get('/:id', vkAuthMiddleware, async (c) => {
-  const ride = await getRideById(Number(c.req.param('id')));
+  const id = Number(c.req.param('id'));
+  if (Number.isNaN(id)) return c.json({ error: 'Invalid ride id' }, 400);
+  const ride = await getRideById(id);
   if (!ride) return c.json({ error: 'Not found' }, 404);
   return c.json(ride);
 });
@@ -47,6 +49,7 @@ ridesRoutes.post('/', vkAuthMiddleware, zValidator('json', CreateRideSchema), as
 ridesRoutes.delete('/:id', vkAuthMiddleware, async (c) => {
   const driverId = c.get('userId');
   const rideId = Number(c.req.param('id'));
+  if (Number.isNaN(rideId)) return c.json({ error: 'Invalid ride id' }, 400);
   const ride = await cancelRide(driverId, rideId);
   return c.json(ride);
 });

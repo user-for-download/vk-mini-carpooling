@@ -22,19 +22,60 @@ interface CarSeatMapProps {
   selectedSeats: number[];
   occupiedSeats: { seatId: number; booking: Booking }[];
   offeredSeats?: number[];
-  maxSeats?: number;
   onSelectSeat?: (seatId: number) => void;
   mode?: 'select' | 'view' | 'create';
 }
 
 type SeatStatus = 'available' | 'selected' | 'occupied' | 'unoffered' | 'driver';
 
+// --- Mapping statuses to VKUI design tokens ---
+function getSeatStyles(st: SeatStatus) {
+  switch (st) {
+    case 'selected':
+      return {
+        bg: 'var(--vkui--color_background_accent)',
+        border: '2px solid var(--vkui--color_background_accent)',
+        text: 'var(--vkui--color_text_contrast_themed, #fff)',
+        opacity: 1,
+      };
+    case 'occupied':
+      return {
+        bg: 'var(--vkui--color_background_tertiary)',
+        border: '2px solid transparent',
+        text: 'var(--vkui--color_text_tertiary)',
+        opacity: 1,
+      };
+    case 'available':
+      return {
+        bg: 'var(--vkui--color_background_secondary)',
+        border: '2px solid transparent',
+        text: 'var(--vkui--color_text_primary)',
+        opacity: 1,
+      };
+    case 'unoffered':
+      return {
+        bg: 'transparent',
+        border: '2px dashed var(--vkui--color_separator_primary)',
+        text: 'var(--vkui--color_text_tertiary)',
+        opacity: 0.4,
+      };
+    case 'driver':
+      return {
+        bg: 'transparent',
+        border: '2px dashed var(--vkui--color_icon_tertiary)',
+        text: 'var(--vkui--color_text_tertiary)',
+        opacity: 1,
+      };
+    default:
+      return { bg: 'transparent', border: 'none', text: 'inherit', opacity: 1 };
+  }
+}
+
 export function CarSeatMap({
   seats,
   selectedSeats,
   occupiedSeats,
   offeredSeats,
-  maxSeats = 5, // eslint-disable-line @typescript-eslint/no-unused-vars
   onSelectSeat,
   mode = 'select',
 }: CarSeatMapProps) {
@@ -59,49 +100,6 @@ export function CarSeatMap({
     onSelectSeat?.(seatId);
   }
 
-  // --- Mapping statuses to VKUI design tokens ---
-  function getSeatStyles(st: SeatStatus) {
-    switch (st) {
-      case 'selected':
-        return {
-          bg: 'var(--vkui--color_background_accent)',
-          border: '2px solid var(--vkui--color_background_accent)',
-          text: 'var(--vkui--color_text_contrast_themed, #fff)',
-          opacity: 1,
-        };
-      case 'occupied':
-        return {
-          bg: 'var(--vkui--color_background_tertiary)',
-          border: '2px solid transparent',
-          text: 'var(--vkui--color_text_tertiary)',
-          opacity: 1,
-        };
-      case 'available':
-        return {
-          bg: 'var(--vkui--color_background_secondary)',
-          border: '2px solid transparent',
-          text: 'var(--vkui--color_text_primary)',
-          opacity: 1,
-        };
-      case 'unoffered':
-        return {
-          bg: 'transparent',
-          border: '2px dashed var(--vkui--color_separator_primary)',
-          text: 'var(--vkui--color_text_tertiary)',
-          opacity: 0.4,
-        };
-      case 'driver':
-        return {
-          bg: 'transparent',
-          border: '2px dashed var(--vkui--color_icon_tertiary)',
-          text: 'var(--vkui--color_text_tertiary)',
-          opacity: 1,
-        };
-      default:
-        return { bg: 'transparent', border: 'none', text: 'inherit', opacity: 1 };
-    }
-  }
-
   function renderSeat(position: Seat['position']) {
     const seat = seats.find((s) => s.position === position);
     if (!seat) return <div style={{ width: 48, height: 48 }} />; // Placeholder if seat doesn't exist
@@ -116,6 +114,9 @@ export function CarSeatMap({
         onClick={() => handleClick(seat.id)}
         hoverMode={isInteractive ? 'opacity' : 'none'}
         activeMode={isInteractive ? 'opacity' : 'none'}
+        aria-label={`Место ${seat.label} — ${getAriaStatus(st)}`}
+        role={mode === 'select' ? 'checkbox' : undefined}
+        aria-checked={mode === 'select' ? st === 'selected' : undefined}
         style={{
           width: 52,
           height: 52,
@@ -234,25 +235,35 @@ export function CarSeatMap({
       )}
     </div>
   );
+}
 
-  // Helper component for legend items
-  function LegendItem({ status, text }: { status: SeatStatus; text: string }) {
-    const styles = getSeatStyles(status);
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{
-          width: 16,
-          height: 16,
-          borderRadius: '50%',
-          background: styles.bg,
-          border: styles.border !== 'none' ? styles.border : '1px solid var(--vkui--color_separator_primary)',
-          opacity: styles.opacity,
-          boxSizing: 'border-box'
-        }} />
-        <Text style={{ fontSize: 13, color: 'var(--vkui--color_text_secondary)' }}>
-          {text}
-        </Text>
-      </div>
-    );
+function getAriaStatus(st: SeatStatus): string {
+  switch (st) {
+    case 'available': return 'свободно';
+    case 'selected': return 'выбрано';
+    case 'occupied': return 'занято';
+    case 'unoffered': return 'недоступно';
+    case 'driver': return 'водитель';
   }
+}
+
+// Hoisted helper component for legend items (H13 — prevents remount on every render)
+function LegendItem({ status, text }: { status: SeatStatus; text: string }) {
+  const styles = getSeatStyles(status);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{
+        width: 16,
+        height: 16,
+        borderRadius: '50%',
+        background: styles.bg,
+        border: styles.border !== 'none' ? styles.border : '1px solid var(--vkui--color_separator_primary)',
+        opacity: styles.opacity,
+        boxSizing: 'border-box'
+      }} />
+      <Text style={{ fontSize: 13, color: 'var(--vkui--color_text_secondary)' }}>
+        {text}
+      </Text>
+    </div>
+  );
 }

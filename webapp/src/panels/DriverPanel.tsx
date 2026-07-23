@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Panel as PanelType,
   PanelHeader,
@@ -12,6 +12,7 @@ import {
   FormItem,
   Input,
   Textarea,
+  Spinner,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import type { RideDTO } from '@local-blablacar/contracts';
@@ -21,42 +22,43 @@ import { RIDE_STATUS, BOOKING_STATUS } from '@local-blablacar/contracts';
 import { TripCard } from '../components/TripCard';
 import { CarSeatMap } from '../components/CarSeatMap';
 import { useLocations } from '../hooks/useLocations';
-import { formatRideDateTime } from '../utils/format';
+import { formatRideDateTime, formatPrice } from '../utils/format';
+import { SEATS } from '../utils/constants';
 import '../styles.css';
 
 type View = 'list' | 'create' | 'rides';
 
-const SEATS = [
-  { id: 1, label: 'В', position: 'driver' as const },
-  { id: 2, label: 'ПП', position: 'front-passenger' as const },
-  { id: 3, label: 'ЗЛ', position: 'rear-left' as const },
-  { id: 4, label: 'ЗЦ', position: 'rear-center' as const },
-  { id: 5, label: 'ЗП', position: 'rear-right' as const },
-];
-
 export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
   const [view, setView] = useState<View>('list');
-  const locations = useLocations();
+  const { locations, loading: locationsLoading, error: locationsError } = useLocations();
   const [myRides, setMyRides] = useState<RideDTO[]>([]);
   const [form, setForm] = useState({
     fromId: '',
     toId: '',
     departureTime: '',
     offeredSeats: [1, 2, 3, 4, 5],
-    price: '0',
+    price: 0,
     driverNote: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const ignoreRef = useRef(false);
 
   async function refresh() {
     const rides = await listMyRides();
-    setMyRides(rides);
+    if (!ignoreRef.current) setMyRides(rides);
   }
 
   useEffect(() => {
-    refresh().catch(console.error);
+    ignoreRef.current = false;
+    refresh().catch((err) => {
+      if (!ignoreRef.current) {
+        console.error(err);
+        setError('Не удалось загрузить поездки');
+      }
+    });
+    return () => { ignoreRef.current = true; };
   }, []);
 
   async function handleCreate() {
@@ -69,10 +71,10 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
         toId: Number(form.toId),
         departureTime: new Date(form.departureTime).toISOString(),
         offeredSeats: form.offeredSeats,
-        price: Number(form.price),
+        price: form.price,
         driverNote: form.driverNote || undefined,
       });
-      setForm({ fromId: '', toId: '', departureTime: '', offeredSeats: [1, 2, 3, 4, 5], price: '0', driverNote: '' });
+      setForm({ fromId: '', toId: '', departureTime: '', offeredSeats: [1, 2, 3, 4, 5], price: 0, driverNote: '' });
       setView('list');
       await refresh();
     } catch (err: any) {
@@ -84,6 +86,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   }
 
   async function handleDecision(bookingId: number, status: 'APPROVED' | 'REJECTED') {
+    setError(null); // Clear previous errors (L13)
     try {
       await updateBookingStatus(bookingId, { status });
       await refresh();
@@ -95,6 +98,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
 
   async function handleCancelRide(rideId: number) {
     if (!window.confirm('Вы уверены, что хотите отменить поездку? Действие нельзя будет отменить.')) return;
+    setError(null); // Clear previous errors (L14)
     try {
       await cancelRideApi(rideId);
       await refresh();
@@ -194,11 +198,11 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                       <div>
                         <Text style={{ fontWeight: 500 }}>Заявка: {booking.passengerId}</Text>
                         <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-                          {booking.seatsBooked} мест ({booking.seatIds.map((id) => SEATS.find((s) => s.id === id)?.label).join(', ')})
+                          {booking.seatsBooked} мест ({(booking.seatIds || []).map((id) => SEATS.find((s) => s.id === id)?.label).join(', ')})
                         </Text>
-                        {'passengerNote' in booking && booking.passengerNote && (
+                        {booking.passengerNote != null && booking.passengerNote !== '' && (
                           <Text style={{ fontSize: 13, color: 'var(--vkui--color_text_secondary)', fontStyle: 'italic', marginTop: 4 }}>
-                            «{String(booking.passengerNote)}»
+                            «{booking.passengerNote}»
                           </Text>
                         )}
                       </div>
@@ -254,12 +258,18 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                 </Button>
               </div>
 
+              {locationsError && (
+                <Text style={{ color: 'var(--vkui-color-text-negative)', marginBottom: 12 }}>
+                  {locationsError}
+                </Text>
+              )}
               <FormItem top="Откуда">
                 <Select
                   placeholder="Выберите точку"
                   value={form.fromId}
                   onChange={(e) => setForm((f) => ({ ...f, fromId: e.target.value }))}
                   options={locations.map((l) => ({ label: l.name, value: String(l.id) }))}
+                  disabled={locationsLoading}
                 />
               </FormItem>
 
@@ -269,6 +279,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                   value={form.toId}
                   onChange={(e) => setForm((f) => ({ ...f, toId: e.target.value }))}
                   options={locations.map((l) => ({ label: l.name, value: String(l.id) }))}
+                  disabled={locationsLoading}
                 />
               </FormItem>
 
@@ -314,8 +325,8 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                 <Input
                   type="number"
                   min={0}
-                  value={form.price}
-                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                  value={String(form.price)}
+                  onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) || 0 }))}
                 />
               </FormItem>
 
@@ -365,7 +376,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                         <Title level="3" style={{ color: 'var(--vkui-color-text-accent)' }}>
-                          {ride.price} ₽
+                          {formatPrice(ride.price)}
                         </Title>
                         <Text style={{
                           fontSize: 12,

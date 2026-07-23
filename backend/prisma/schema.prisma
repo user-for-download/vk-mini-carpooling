@@ -9,7 +9,7 @@ datasource db {
 
 model Location {
   id       Int    @id @default(autoincrement())
-  name     String
+  name     String @unique
   district String?
 
   ridesFrom Ride[] @relation("RideFrom")
@@ -56,6 +56,7 @@ model Ride {
 
   @@index([status, fromId, toId, departureTime])
   @@index([driverId])
+  @@index([departureTime])
 }
 
 enum BookingStatus {
@@ -77,6 +78,8 @@ model Booking {
   ride      Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
   passenger User @relation("PassengerBookings", fields: [passengerId], references: [id])
 
+  @@unique([rideId, passengerId])
   @@index([rideId])
   @@index([passengerId])
+  @@index([status])
 }

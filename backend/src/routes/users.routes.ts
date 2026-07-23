@@ -2,15 +2,15 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { InitUserSchema } from '@local-blablacar/contracts';
 import { vkAuthMiddleware } from '../middleware/vkAuth';
-import { ensureUser } from '../services/users.service';
+import { ensureUser, getUserById } from '../services/users.service';
 
 export const usersRoutes = new Hono();
 
 usersRoutes.get('/me', vkAuthMiddleware, async (c) => {
   const userId = c.get('userId');
-  const platform = c.get('vkPlatform');
-  const user = await ensureUser({ id: userId, platform });
-  return c.json(user);
+  // GET /me should not mutate state — just return the user if exists (M1)
+  const user = await getUserById(userId);
+  return c.json(user ?? null);
 });
 
 usersRoutes.post('/init', vkAuthMiddleware, zValidator('json', InitUserSchema), async (c) => {
