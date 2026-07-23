@@ -143,7 +143,7 @@ export function CarSeatMap({
       {/* --- Car Body (Styled for VKUI) --- */}
       <div
         style={{
-          width: 220,
+          width: 160,
           background: 'var(--vkui--color_background_content)',
           border: '2px solid var(--vkui--color_separator_primary)',
           borderRadius: '40px 40px 24px 24px',
@@ -151,7 +151,7 @@ export function CarSeatMap({
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          gap: 20,
+          gap: 80,
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
         }}
       >
