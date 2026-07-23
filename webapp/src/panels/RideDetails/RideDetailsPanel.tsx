@@ -14,7 +14,7 @@ import { BOOKING_STATUS } from '@local-blablacar/contracts';
 import { getRide } from '../../api/rides';
 import { createBooking, cancelBooking as cancelBookingApi, updateBooking as updateBookingApi } from '../../api/bookings';
 import { TripCard } from '../../components/TripCard';
-import { ConfirmPopout } from '../../components/ConfirmPopout';
+import { useConfirm } from '../../components/ConfirmPopout';
 import { ErrorSnackbar } from '../../components/ErrorSnackbar';
 import { useRideDetails } from '../../hooks/useRideDetails';
 import { useMyBookings } from '../../hooks/useMyBookings';
@@ -26,6 +26,7 @@ interface Props {
 
 export function RideDetailsPanel({ nav }: Props) {
   const routeNavigator = useRouteNavigator();
+  const confirm = useConfirm();
   const params = useParams<'id'>();
   const rideId = params?.id ? Number(params.id) : null;
   
@@ -61,13 +62,11 @@ export function RideDetailsPanel({ nav }: Props) {
 
   function openBookConfirm() {
     if (!ride || selectedSeats.length === 0) return;
-    routeNavigator.showPopout(
-      <ConfirmPopout
-        title="Подтверждение"
-        text={`Забронировать ${selectedSeats.length} мест(а)?`}
-        onConfirm={processBook}
-      />
-    );
+    confirm({
+      title: 'Подтверждение',
+      text: `Забронировать ${selectedSeats.length} мест(а)?`,
+      onConfirm: processBook,
+    });
   }
 
   async function processBook() {
@@ -91,13 +90,11 @@ export function RideDetailsPanel({ nav }: Props) {
   function openCancelConfirm() {
     const booking = ride ? getBookingForRide(ride.id) : undefined;
     if (!booking) return;
-    routeNavigator.showPopout(
-      <ConfirmPopout
-        title="Отмена брони"
-        text="Вы уверены, что хотите отменить бронирование?"
-        onConfirm={() => processCancel(booking.id)}
-      />
-    );
+    confirm({
+      title: 'Отмена брони',
+      text: 'Вы уверены, что хотите отменить бронирование?',
+      onConfirm: () => processCancel(booking.id),
+    });
   }
 
   async function processCancel(bookingId: number) {
@@ -130,13 +127,11 @@ export function RideDetailsPanel({ nav }: Props) {
   function openUpdateConfirm() {
     const booking = ride ? getBookingForRide(ride.id) : undefined;
     if (!booking || selectedSeats.length === 0) return;
-    routeNavigator.showPopout(
-      <ConfirmPopout
-        title="Изменение брони"
-        text={`Изменить бронирование на ${selectedSeats.length} мест(а)?`}
-        onConfirm={() => processUpdate(booking.id)}
-      />
-    );
+    confirm({
+      title: 'Изменение брони',
+      text: `Изменить бронирование на ${selectedSeats.length} мест(а)?`,
+      onConfirm: () => processUpdate(booking.id),
+    });
   }
 
   async function processUpdate(bookingId: number) {

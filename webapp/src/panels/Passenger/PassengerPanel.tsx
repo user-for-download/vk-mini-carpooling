@@ -5,7 +5,7 @@ import type { RideDTO } from '@local-blablacar/contracts';
 import { BOOKING_STATUS } from '@local-blablacar/contracts';
 import { searchRides } from '../../api/rides';
 import { cancelBooking as cancelBookingApi } from '../../api/bookings';
-import { ConfirmPopout } from '../../components/ConfirmPopout';
+import { useConfirm } from '../../components/ConfirmPopout';
 import { ErrorSnackbar } from '../../components/ErrorSnackbar';
 import { NetworkError } from '../../components/NetworkError';
 import { useMyBookings } from '../../hooks/useMyBookings';
@@ -16,6 +16,7 @@ const STORAGE_KEY = 'passenger_search_state';
 
 export function PassengerPanel({ nav }: { nav: string }) {
   const routeNavigator = useRouteNavigator();
+  const confirm = useConfirm();
   const { bookings: myBookings, isLoading: isBookingsLoading, error: initialLoadError, refetch: refetchBookings } = useMyBookings();
 
   const savedState = (() => {
@@ -94,9 +95,11 @@ export function PassengerPanel({ nav }: { nav: string }) {
         bookings={myBookings} 
         isLoading={isBookingsLoading} 
         onRefresh={refetchBookings} 
-        onCancelClick={(id) => routeNavigator.showPopout(
-          <ConfirmPopout title="Отменить?" text="Вы уверены?" onConfirm={() => processCancelBooking(id)} />
-        )} 
+        onCancelClick={(id) => confirm({
+          title: 'Отменить?',
+          text: 'Вы уверены?',
+          onConfirm: () => processCancelBooking(id),
+        })} 
       />
 
       {view === 'search' && (
