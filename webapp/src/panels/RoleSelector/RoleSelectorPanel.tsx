@@ -1,6 +1,6 @@
 import { Panel as PanelType, PanelHeader, Title, Text, Button, Card, Div } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import '../styles.css';
+import '../../styles.css';
 
 export function RoleSelector(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();

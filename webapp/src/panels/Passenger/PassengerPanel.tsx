@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useContext, useState, useRef, useCallback } from 'react';
 import {
   Panel as PanelType,
   PanelHeader,
@@ -13,16 +13,18 @@ import {
   Spinner,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import type { RideDTO, BookingDTO } from '@local-blablacar/contracts';
+import type { RideDTO } from '@local-blablacar/contracts';
 import { MAX_BOOKING_COUNT, BOOKING_STATUS } from '@local-blablacar/contracts';
-import { searchRides } from '../api/rides';
-import { createBooking, cancelBooking as cancelBookingApi, listMyBookings } from '../api/bookings';
-import { TripCard } from '../components/TripCard';
-import { TripListItem } from '../components/TripListItem';
-import { useLocations } from '../hooks/useLocations';
-import { formatRideDateTime, formatPrice } from '../utils/format';
-import { SEATS } from '../utils/constants';
-import '../styles.css';
+import { searchRides } from '../../api/rides';
+import { createBooking, cancelBooking as cancelBookingApi } from '../../api/bookings';
+import { TripCard } from '../../components/TripCard';
+import { TripListItem } from '../../components/TripListItem';
+import { ConfirmPopout } from '../../components/ConfirmPopout';
+import { DataContext } from '../../context/dataContext';
+import { useMyBookings } from '../../hooks/useMyBookings';
+import { formatRideDateTime, formatPrice } from '../../utils/format';
+import { SEATS } from '../../utils/constants';
+import '../../styles.css';
 
 type View = 'search' | 'results';
 
@@ -30,7 +32,9 @@ const STORAGE_KEY = 'passenger_search_state';
 
 export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
-  const { locations, loading: locationsLoading, error: locationsError } = useLocations();
+  const ctx = useContext(DataContext);
+  const locations = ctx?.locations ?? [];
+  const { bookings: myBookings, setBookings: setMyBookings, refetch: refetchBookings } = useMyBookings();
 
   // Restore search state from sessionStorage on mount
   const savedState = (() => {
@@ -47,13 +51,11 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const [toId, setToId] = useState<string>(savedState?.toId || '');
   const [date, setDate] = useState<string>(savedState?.date || '');
   const [rides, setRides] = useState<RideDTO[] | null>(savedState?.rides || null);
-  const [myBookings, setMyBookings] = useState<BookingDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [bookingLoading, setBookingLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Record<number, number[]>>({});
   const [showHistory, setShowHistory] = useState(false);
-  const ignoreRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
 
   // Save search state to sessionStorage whenever it changes
@@ -66,26 +68,6 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
       // Ignore storage errors
     }
   }, []);
-
-  // Refetch bookings helper
-  const fetchBookings = useCallback(async () => {
-    try {
-      const data = await listMyBookings();
-      if (!ignoreRef.current) setMyBookings(data);
-    } catch (err) {
-      if (!ignoreRef.current) {
-        console.error(err);
-        setError('Не удалось загрузить бронирования');
-      }
-    }
-  }, []);
-
-  // Fetch on mount and refetch when panel becomes active
-  useEffect(() => {
-    ignoreRef.current = false;
-    fetchBookings();
-    return () => { ignoreRef.current = true; };
-  }, [fetchBookings]);
 
   async function handleSearch() {
     abortRef.current?.abort();
@@ -123,8 +105,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
     setError(null);
     try {
       await createBooking({ rideId, seatIds: seats });
-      const updatedBookings = await listMyBookings();
-      setMyBookings(updatedBookings);
+      await refetchBookings();
       setSelectedSeats((prev) => {
         const next = { ...prev };
         delete next[rideId];
@@ -142,13 +123,21 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
     return myBookings.some((b) => b.rideId === rideId && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED));
   }
 
-  async function handleCancelBooking(bookingId: number) {
-    if (!window.confirm('Вы уверены, что хотите отменить бронирование?')) return;
+  function openCancelBookingConfirm(bookingId: number) {
+    routeNavigator.showPopout(
+      <ConfirmPopout
+        title="Отменить бронирование?"
+        text="Вы уверены, что хотите отменить бронирование?"
+        onConfirm={() => processCancelBooking(bookingId)}
+      />
+    );
+  }
+
+  async function processCancelBooking(bookingId: number) {
     setError(null);
     try {
       await cancelBookingApi(bookingId);
-      const updatedBookings = await listMyBookings();
-      setMyBookings(updatedBookings);
+      await refetchBookings();
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось отменить';
       setError(message);
@@ -192,7 +181,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
           <Button
             size="s"
             mode="refresh"
-            onClick={fetchBookings}
+            onClick={refetchBookings}
           >
             Обновить
           </Button>
@@ -233,7 +222,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                       mode="secondary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleCancelBooking(booking.id);
+                        openCancelBookingConfirm(booking.id);
                       }}
                     >
                       Отменить
@@ -288,11 +277,6 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                 Найти поездку
               </Title>
 
-              {locationsError && (
-                <Text style={{ color: 'var(--vkui-color-text-negative)', marginBottom: 12 }}>
-                  {locationsError}
-                </Text>
-              )}
               <FormItem top="Откуда" required>
                 <Select
                   placeholder="Выберите точку отправления"
@@ -302,7 +286,6 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                     saveState({ fromId: e.target.value });
                   }}
                   options={locations.filter((l) => l.id !== Number(toId)).map((l) => ({ label: l.name, value: String(l.id) }))}
-                  disabled={locationsLoading}
                 />
               </FormItem>
 
@@ -315,7 +298,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
                     saveState({ toId: e.target.value });
                   }}
                   options={locations.filter((l) => l.id !== Number(fromId)).map((l) => ({ label: l.name, value: String(l.id) }))}
-                  disabled={locationsLoading || !fromId}
+                  disabled={!fromId}
                 />
               </FormItem>
 

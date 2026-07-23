@@ -1,4 +1,4 @@
-import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import { Component, useContext, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import bridge from '@vkontakte/vk-bridge';
 import { RouterProvider, useActiveVkuiLocation, useGetPanelForView } from '@vkontakte/vk-mini-apps-router';
 import {
@@ -7,14 +7,18 @@ import {
   ConfigProvider,
   Root,
   View,
+  Spinner,
   type AppearanceType,
 } from '@vkontakte/vkui';
 import { router } from './router';
-import { RoleSelector } from './panels/RoleSelector';
-import { PassengerPanel } from './panels/PassengerPanel';
-import { DriverPanel } from './panels/DriverPanel';
-import { RideDetails } from './panels/RideDetails';
-import { initUser } from './api/user';
+import { RoleSelector } from './panels/RoleSelector/RoleSelectorPanel';
+import { PassengerPanel } from './panels/Passenger/PassengerPanel';
+import { DriverPanel } from './panels/Driver/DriverPanel';
+import { RideDetailsPanel } from './panels/RideDetails/RideDetailsPanel';
+import { DataContext, DataContextProvider } from './context/dataContext';
+import { useInitApp } from './hooks/useInitApp';
+import { EPanel } from './consts/panels';
+import { EView } from './consts/views';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -63,62 +67,31 @@ function useVkAppearance(): AppearanceType {
 
 function Layout() {
   const { view: activeView } = useActiveVkuiLocation();
-  const activePanel = useGetPanelForView('main');
-  const [userReady, setUserReady] = useState(false);
+  const activePanel = useGetPanelForView(EView.MAIN);
+  const ctx = useContext(DataContext);
+  const isReady = ctx?.isReady ?? false;
 
-  useEffect(() => {
-    async function ensureUser() {
-      try {
-        if (import.meta.env.DEV && !window.location.search.includes('vk_user_id')) {
-          const mockUser = new URLSearchParams(window.location.search).get('mock_user') ?? 'passenger';
-          await initUser({ 
-            firstName: mockUser === 'driver' ? 'Alex' : 'Ivan', 
-            lastName: mockUser === 'driver' ? 'Driver' : 'Smirnov' 
-          });
-        } else {
-          let firstName = undefined;
-          let lastName = undefined;
-          let photoUrl = undefined;
-          
-          try {
-            // This can throw if the user clicks "Deny" on the VK permissions popup
-            const vkUserInfo = await bridge.send('VKWebAppGetUserInfo');
-            firstName = vkUserInfo.first_name;
-            lastName = vkUserInfo.last_name;
-            photoUrl = vkUserInfo.photo_200;
-          } catch (bridgeErr) {
-            console.warn('VKWebAppGetUserInfo denied or failed. Initializing with default data.', bridgeErr);
-          }
-          
-          // The backend implicitly gets their vk_user_id from the Launch Params HMAC token
-          await initUser({ firstName, lastName, photoUrl });
-        }
-      } catch (err) {
-        console.error('Failed to init user:', err);
-      } finally {
-        setUserReady(true);
-      }
-    }
-    ensureUser();
-  }, []);
+  useInitApp();
 
-  if (!userReady) {
+  if (!isReady) {
     return (
-      <Root activeView="main">
-        <View nav="main" activePanel="role_selector">
-          <RoleSelector nav="role_selector" />
+      <Root activeView={EView.MAIN}>
+        <View nav={EView.MAIN} activePanel={EPanel.ROLE_SELECTOR}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+            <Spinner size="large" />
+          </div>
         </View>
       </Root>
     );
   }
 
   return (
-    <Root activeView={activeView ?? 'main'}>
-      <View nav="main" activePanel={activePanel ?? 'role_selector'}>
-        <RoleSelector nav="role_selector" />
-        <PassengerPanel nav="passenger" />
-        <DriverPanel nav="driver" />
-        <RideDetails nav="ride_details" />
+    <Root activeView={activeView ?? EView.MAIN}>
+      <View nav={EView.MAIN} activePanel={activePanel ?? EPanel.ROLE_SELECTOR}>
+        <RoleSelector nav={EPanel.ROLE_SELECTOR} />
+        <PassengerPanel nav={EPanel.PASSENGER} />
+        <DriverPanel nav={EPanel.DRIVER} />
+        <RideDetailsPanel nav={EPanel.RIDE_DETAILS} />
       </View>
     </Root>
   );
@@ -133,7 +106,9 @@ export const App = () => {
         <AdaptivityProvider>
           <AppRoot>
             <RouterProvider router={router}>
-              <Layout />
+              <DataContextProvider>
+                <Layout />
+              </DataContextProvider>
             </RouterProvider>
           </AppRoot>
         </AdaptivityProvider>

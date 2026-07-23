@@ -12,50 +12,25 @@ import {
 import { useParams, useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import type { RideDTO, BookingDTO } from '@local-blablacar/contracts';
 import { BOOKING_STATUS } from '@local-blablacar/contracts';
-import { getRide } from '../api/rides';
-import { createBooking, cancelBooking as cancelBookingApi, listMyBookings, updateBooking as updateBookingApi } from '../api/bookings';
-import { TripCard } from '../components/TripCard';
-import '../styles.css';
+import { getRide } from '../../api/rides';
+import { createBooking, cancelBooking as cancelBookingApi, listMyBookings, updateBooking as updateBookingApi } from '../../api/bookings';
+import { TripCard } from '../../components/TripCard';
+import { ConfirmPopout } from '../../components/ConfirmPopout';
+import { useRideDetails } from '../../hooks/useRideDetails';
+import { useMyBookings } from '../../hooks/useMyBookings';
+import '../../styles.css';
 
-export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
+export function RideDetailsPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
   const params = useParams<'id'>();
-  const [ride, setRide] = useState<RideDTO | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [myBookings, setMyBookings] = useState<BookingDTO[]>([]);
+  const rideId = params?.id ? Number(params.id) : null;
+  const { ride, setRide, notFound, isLoading } = useRideDetails(rideId);
+  const { bookings: myBookings, refetch: refetchBookings } = useMyBookings();
   const [loading, setLoading] = useState(false);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [passengerNote, setPassengerNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const ignoreRef = useRef(false);
-
-  useEffect(() => {
-    if (!params?.id) return;
-    ignoreRef.current = false;
-    // Reset state on param change (H12, H19)
-    setRide(null);
-    setNotFound(false);
-    setError(null);
-    setSelectedSeats([]);
-    setPassengerNote('');
-    setIsEditing(false);
-
-    const rideId = Number(params.id);
-    if (Number.isNaN(rideId)) {
-      setNotFound(true);
-      return;
-    }
-
-    getRide(rideId)
-      .then((data) => { if (!ignoreRef.current) setRide(data); })
-      .catch(() => { if (!ignoreRef.current) setNotFound(true); });
-    listMyBookings()
-      .then((data) => { if (!ignoreRef.current) setMyBookings(data); })
-      .catch(console.error);
-
-    return () => { ignoreRef.current = true; };
-  }, [params?.id]);
 
   function isBooked(rideId: number): boolean {
     return myBookings.some((b) => b.rideId === rideId && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED));
@@ -65,16 +40,25 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     return myBookings.find((b) => b.rideId === rideId && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED));
   }
 
-  async function handleBook() {
+  function openBookConfirm() {
     if (!ride || selectedSeats.length === 0) return;
-    if (!window.confirm(`Забронировать ${selectedSeats.length} мест(а)?`)) return;
+    routeNavigator.showPopout(
+      <ConfirmPopout
+        title="Подтверждение"
+        text={`Забронировать ${selectedSeats.length} мест(а)?`}
+        onConfirm={processBook}
+      />
+    );
+  }
 
+  async function processBook() {
+    if (!ride) return;
     setLoading(true);
     setError(null);
     try {
       await createBooking({ rideId: ride.id, seatIds: selectedSeats, passengerNote: passengerNote.trim() ? passengerNote.trim() : undefined });
-      const [updatedBookings, updatedRide] = await Promise.all([listMyBookings(), getRide(ride.id)]);
-      setMyBookings(updatedBookings);
+      await refetchBookings();
+      const updatedRide = await getRide(ride.id);
       setRide(updatedRide);
       setSelectedSeats([]);
       setPassengerNote('');
@@ -86,18 +70,28 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     }
   }
 
-  async function handleCancel() {
+  function openCancelConfirm() {
     const booking = ride ? getBookingForRide(ride.id) : undefined;
     if (!booking) return;
-    if (!window.confirm('Вы уверены, что хотите отменить бронирование?')) return;
+    routeNavigator.showPopout(
+      <ConfirmPopout
+        title="Отмена брони"
+        text="Вы уверены, что хотите отменить бронирование?"
+        onConfirm={() => processCancel(booking.id)}
+      />
+    );
+  }
 
+  async function processCancel(bookingId: number) {
     setLoading(true);
     setError(null);
     try {
-      await cancelBookingApi(booking.id);
-      const [updatedBookings, updatedRide] = await Promise.all([listMyBookings(), getRide(ride.id)]);
-      setMyBookings(updatedBookings);
-      setRide(updatedRide);
+      await cancelBookingApi(bookingId);
+      if (ride) {
+        await refetchBookings();
+        const updatedRide = await getRide(ride.id);
+        setRide(updatedRide);
+      }
       setIsEditing(false);
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось отменить';
@@ -116,18 +110,28 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     setIsEditing(true);
   }
 
-  async function handleUpdate() {
+  function openUpdateConfirm() {
     const booking = ride ? getBookingForRide(ride.id) : undefined;
     if (!booking || selectedSeats.length === 0) return;
-    if (!window.confirm(`Изменить бронирование на ${selectedSeats.length} мест(а)?`)) return;
+    routeNavigator.showPopout(
+      <ConfirmPopout
+        title="Изменение брони"
+        text={`Изменить бронирование на ${selectedSeats.length} мест(а)?`}
+        onConfirm={() => processUpdate(booking.id)}
+      />
+    );
+  }
 
+  async function processUpdate(bookingId: number) {
     setLoading(true);
     setError(null);
     try {
-      await updateBookingApi(booking.id, { seatIds: selectedSeats, passengerNote: passengerNote.trim() ? passengerNote.trim() : null });
-      const [updatedBookings, updatedRide] = await Promise.all([listMyBookings(), getRide(ride.id)]);
-      setMyBookings(updatedBookings);
-      setRide(updatedRide);
+      await updateBookingApi(bookingId, { seatIds: selectedSeats, passengerNote: passengerNote.trim() ? passengerNote.trim() : null });
+      if (ride) {
+        await refetchBookings();
+        const updatedRide = await getRide(ride.id);
+        setRide(updatedRide);
+      }
       setIsEditing(false);
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось изменить бронирование';
@@ -203,9 +207,9 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
                   : [...prev, seatId]
               );
             }}
-            onBook={handleBook}
-            onUpdate={handleUpdate}
-            onCancel={isEditing ? () => setIsEditing(false) : handleCancel}
+            onBook={openBookConfirm}
+            onUpdate={openUpdateConfirm}
+            onCancel={isEditing ? () => setIsEditing(false) : openCancelConfirm}
             mode="passenger"
             isBooked={booked}
             bookingStatus={currentBooking?.status}

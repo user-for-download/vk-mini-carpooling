@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useContext, useState, type ReactElement } from 'react';
 import {
   Panel as PanelType,
   PanelHeader,
@@ -16,24 +16,29 @@ import {
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import type { RideDTO } from '@local-blablacar/contracts';
-import { createRide, listMyRides, cancelRide as cancelRideApi } from '../api/rides';
-import { updateBookingStatus } from '../api/bookings';
+import { createRide, cancelRide as cancelRideApi } from '../../api/rides';
+import { updateBookingStatus } from '../../api/bookings';
 import { RIDE_STATUS, BOOKING_STATUS } from '@local-blablacar/contracts';
-import { TripCard } from '../components/TripCard';
-import { TripListItem } from '../components/TripListItem';
-import { CarSeatMap } from '../components/CarSeatMap';
-import { useLocations } from '../hooks/useLocations';
-import { formatRideDateTime, formatPrice } from '../utils/format';
-import { SEATS } from '../utils/constants';
-import '../styles.css';
+import { TripCard } from '../../components/TripCard';
+import { TripListItem } from '../../components/TripListItem';
+import { CarSeatMap } from '../../components/CarSeatMap';
+import { ConfirmPopout } from '../../components/ConfirmPopout';
+import { ErrorSnackbar } from '../../components/ErrorSnackbar';
+import { NetworkError } from '../../components/NetworkError';
+import { DataContext } from '../../context/dataContext';
+import { useMyRides } from '../../hooks/useMyRides';
+import { formatRideDateTime, formatPrice } from '../../utils/format';
+import { SEATS } from '../../utils/constants';
+import '../../styles.css';
 
 type View = 'list' | 'create' | 'detail';
 
 export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
+  const ctx = useContext(DataContext);
+  const locations = ctx?.locations ?? [];
+  const { rides: myRides, isLoading, error: initialLoadError, refetch } = useMyRides();
   const [view, setView] = useState<View>('list');
-  const { locations, loading: locationsLoading, error: locationsError } = useLocations();
-  const [myRides, setMyRides] = useState<RideDTO[]>([]);
   const [selectedRide, setSelectedRide] = useState<RideDTO | null>(null);
   const [form, setForm] = useState({
     fromId: '',
@@ -46,26 +51,30 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   const [loading, setLoading] = useState(false);
   const [decisionLoading, setDecisionLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const ignoreRef = useRef(false);
+  const [snackbar, setSnackbar] = useState<ReactElement | null>(null);
 
-  async function refresh() {
-    const rides = await listMyRides();
-    if (!ignoreRef.current) setMyRides(rides);
+  function showErrorSnackbar(message?: string, retryAction?: () => void) {
+    if (snackbar) return;
+    setSnackbar(
+      <ErrorSnackbar
+        text={message}
+        onClose={() => setSnackbar(null)}
+        action={retryAction}
+      />
+    );
   }
 
-  useEffect(() => {
-    ignoreRef.current = false;
-    refresh().catch((err) => {
-      if (!ignoreRef.current) {
-        console.error(err);
-        setError('Не удалось загрузить поездки');
-      }
-    });
-    return () => { ignoreRef.current = true; };
-  }, []);
+  function openCreateConfirm() {
+    routeNavigator.showPopout(
+      <ConfirmPopout
+        title="Опубликовать поездку?"
+        text="Вы уверены, что хотите опубликовать поездку?"
+        onConfirm={processCreate}
+      />
+    );
+  }
 
-  async function handleCreate() {
-    if (!window.confirm('Опубликовать поездку?')) return;
+  async function processCreate() {
     setLoading(true);
     setError(null);
     try {
@@ -79,10 +88,10 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
       });
       setForm({ fromId: '', toId: '', departureTime: '', offeredSeats: [2, 3, 4, 5], price: 0, driverNote: '' });
       setView('list');
-      await refresh();
+      await refetch();
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось создать поездку';
-      setError(message);
+      showErrorSnackbar(message);
     } finally {
       setLoading(false);
     }
@@ -93,32 +102,40 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
     setError(null);
     try {
       await updateBookingStatus(bookingId, { status });
-      await refresh();
+      await refetch();
       // Update selected ride with fresh data
       if (selectedRide) {
-        const updated = await listMyRides();
-        const fresh = updated.find((r) => r.id === selectedRide.id);
+        const fresh = myRides.find((r) => r.id === selectedRide.id);
         if (fresh) setSelectedRide(fresh);
       }
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось обработать заявку';
-      setError(message);
+      showErrorSnackbar(message);
     } finally {
       setDecisionLoading(null);
     }
   }
 
-  async function handleCancelRide(rideId: number) {
-    if (!window.confirm('Вы уверены, что хотите отменить поездку? Действие нельзя будет отменить.')) return;
+  function openCancelRideConfirm(rideId: number) {
+    routeNavigator.showPopout(
+      <ConfirmPopout
+        title="Отменить поездку?"
+        text="Действие нельзя будет отменить."
+        onConfirm={() => processCancelRide(rideId)}
+      />
+    );
+  }
+
+  async function processCancelRide(rideId: number) {
     setError(null);
     try {
       await cancelRideApi(rideId);
       setSelectedRide(null);
       setView('list');
-      await refresh();
+      await refetch();
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось отменить поездку';
-      setError(message);
+      showErrorSnackbar(message);
     }
   }
 
@@ -129,27 +146,23 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
 
   const activeRides = myRides.filter((r) => r.status === RIDE_STATUS.ACTIVE);
 
+  // If the initial API fetch fails, show the NetworkError placeholder
+  if (initialLoadError && view === 'list') {
+    return (
+      <PanelType {...props}>
+        <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
+          Водитель
+        </PanelHeader>
+        <NetworkError action={refetch} text={initialLoadError} />
+      </PanelType>
+    );
+  }
+
   return (
     <PanelType {...props}>
       <PanelHeader before={<PanelHeaderBack onClick={() => view === 'list' ? routeNavigator.push('/') : setView('list')} />}>
         {view === 'detail' ? 'Детали поездки' : 'Водитель'}
       </PanelHeader>
-
-      {error && (
-        <Div>
-          <Card mode="shadow" style={{ background: 'var(--vkui-color-background-negative)', padding: 12 }}>
-            <Text style={{ color: 'white' }}>{error}</Text>
-            <Button
-              size="s"
-              mode="secondary"
-              onClick={() => setError(null)}
-              style={{ marginTop: 8 }}
-            >
-              Закрыть
-            </Button>
-          </Card>
-        </Div>
-      )}
 
       {/* List View - Simple panels for active trips */}
       {view === 'list' && (
@@ -198,7 +211,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
               size="l"
               stretched
               mode="secondary"
-              onClick={refresh}
+              onClick={refetch}
               style={{ marginTop: 12 }}
             >
               Обновить
@@ -220,7 +233,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
               size="l"
               stretched
               mode="secondary"
-              onClick={() => handleCancelRide(selectedRide.id)}
+              onClick={() => openCancelRideConfirm(selectedRide.id)}
             >
               Отменить поездку
             </Button>
@@ -286,18 +299,12 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                 </Button>
               </div>
 
-              {locationsError && (
-                <Text style={{ color: 'var(--vkui-color-text-negative)', marginBottom: 12 }}>
-                  {locationsError}
-                </Text>
-              )}
               <FormItem top="Откуда" required>
                 <Select
                   placeholder="Выберите точку отправления"
                   value={form.fromId}
                   onChange={(e) => setForm((f) => ({ ...f, fromId: e.target.value, toId: f.toId === e.target.value ? '' : f.toId }))}
                   options={locations.filter((l) => l.id !== Number(form.toId)).map((l) => ({ label: l.name, value: String(l.id) }))}
-                  disabled={locationsLoading}
                 />
               </FormItem>
 
@@ -307,7 +314,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                   value={form.toId}
                   onChange={(e) => setForm((f) => ({ ...f, toId: e.target.value }))}
                   options={locations.filter((l) => l.id !== Number(form.fromId)).map((l) => ({ label: l.name, value: String(l.id) }))}
-                  disabled={locationsLoading || !form.fromId}
+                  disabled={!form.fromId}
                 />
               </FormItem>
 
@@ -367,7 +374,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                 stretched
                 mode="primary"
                 appearance="positive"
-                onClick={handleCreate}
+                onClick={openCreateConfirm}
                 disabled={loading || form.offeredSeats.length === 0 || !form.fromId || !form.toId || !form.departureTime}
               >
                 {loading ? 'Создание...' : 'Опубликовать'}
@@ -376,6 +383,9 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
           </Card>
         </Div>
       )}
+
+      {/* Snackbar for transient errors */}
+      {snackbar}
     </PanelType>
   );
 }
