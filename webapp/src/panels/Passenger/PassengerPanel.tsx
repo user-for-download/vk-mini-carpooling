@@ -116,6 +116,9 @@ export function PassengerPanel({ nav }: { nav: string }) {
       {view === 'results' && rides && (
         <SearchResults 
           rides={rides} 
+          fromId={fromId}
+          toId={toId}
+          date={date}
           isBooked={(id) => myBookings.some((b) => b.rideId === id && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED))} 
           onNewSearch={() => { setView('search'); saveState({ view: 'search', rides: null }); }} 
         />
