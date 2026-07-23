@@ -88,10 +88,10 @@ Business logic in `src/services/*.service.ts` can be tested directly.
 5. Click "Найти поездки"
 6. Tap ride to view details
 7. Select seats on car diagram
-8. Book ride with optional comment
+8. Book ride with optional comment (VKUI Alert confirmation)
 9. View in "Мои бронирования"
 10. Edit pending booking (change seats/note)
-11. Cancel booking
+11. Cancel booking (VKUI Alert confirmation)
 12. View history (collapsed section)
 
 **Driver:**
@@ -100,7 +100,7 @@ Business logic in `src/services/*.service.ts` can be tested directly.
 3. Tap trip to see details with bookings
 4. Create new ride (From, To, Date, Seats, Price)
 5. Approve/reject bookings with passenger names
-6. Cancel ride (cascades to bookings)
+6. Cancel ride (VKUI Alert confirmation, cascades to bookings)
 
 ### Browser Testing
 
@@ -178,3 +178,10 @@ All routes return typed JSON errors:
 ### State Persistence
 - Passenger search state saved in `sessionStorage`
 - Restored when navigating back from ride details
+
+### Frontend Components
+- `ConfirmPopout` — VKUI Alert dialog (replaces window.confirm)
+- `ErrorSnackbar` — transient error notification with optional retry
+- `NetworkError` — full-page error placeholder with retry button
+- `DataContext` — global state (user, locations) via React Context
+- Custom hooks: `useMyRides`, `useMyBookings`, `useRideDetails`

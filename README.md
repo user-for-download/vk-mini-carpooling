@@ -27,6 +27,9 @@ A ride-sharing Mini App for VKontakte: drivers publish rides between local picku
 - Mock auth mode for development
 - sessionStorage persistence for search state
 - Docker support for local development
+- Domain-driven frontend architecture
+- Global state via React Context
+- Custom data-fetching hooks
 
 ## Stack
 

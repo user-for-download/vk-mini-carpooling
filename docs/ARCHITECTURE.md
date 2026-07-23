@@ -19,10 +19,16 @@ vk-mini-app/
 ├── webapp/
 │   ├── public/              Static assets (favicon.svg)
 │   └── src/
-│       ├── components/      Reusable UI (CarSeatMap, TripCard, TripListItem)
-│       ├── panels/          Screen panels (PassengerPanel, DriverPanel, etc.)
-│       ├── hooks/           Custom hooks (useLocations)
 │       ├── api/             Axios API client functions
+│       ├── components/      Global shared UI (CarSeatMap, TripCard, TripListItem, ConfirmPopout, ErrorSnackbar, NetworkError)
+│       ├── consts/          Routing enums (EPanel, EView)
+│       ├── context/         React Context for global state (DataContext)
+│       ├── hooks/           Custom hooks (useInitApp, useMyRides, useMyBookings, useRideDetails)
+│       ├── panels/          Domain-driven panel structure
+│       │   ├── RoleSelector/   Role selection panel
+│       │   ├── Passenger/      Passenger panel with search and bookings
+│       │   ├── Driver/         Driver panel with ride management
+│       │   └── RideDetails/    Ride details with booking actions
 │       └── utils/           Shared utilities (formatRideDateTime, constants)
 ├── docker-compose.yml       Backend + PostgreSQL services
 └── docs/
@@ -103,23 +109,36 @@ route (thin, zValidator) -> vkAuthMiddleware -> service -> Prisma -> typed DTO
 1. **Production** — HMAC-SHA256 verification of VK launch params (raw string parsing)
 2. **Development** — `VK_AUTH_MOCK_ENABLED=true` auto-authenticates all requests
 
-## Frontend Components
+## Frontend Architecture
 
-### CarSeatMap
+### Global State (DataContext)
+- Provides `user`, `locations`, and `isReady` to all components
+- Populated once on app mount via `useInitApp` hook
+- Eliminates duplicate API calls between panels
+
+### Custom Hooks
+- `useInitApp` — initializes user (mock/VK Bridge) and fetches locations
+- `useMyRides` — fetches driver's rides with loading/error states
+- `useMyBookings` — fetches passenger's bookings with loading/error states
+- `useRideDetails` — fetches single ride by ID with not-found handling
+
+### Components
+
+#### CarSeatMap
 Top-down car schematic with 5 seats:
 - **В** (Водитель) — driver seat (always locked)
 - **ПП** (Передний пассажир) — front passenger
 - **ЗЛ/ЗЦ/ЗП** — rear row (left/center/right)
 - Modes: `select` (passenger booking), `view` (driver/readonly), `create` (driver offering)
 
-### TripCard
+#### TripCard
 Combined trip information card:
 - Car seat map visualization
 - Route, price, date
 - Driver/passenger info with notes
 - Action buttons (Book/Cancel/Approve/Reject/Edit)
 
-### TripListItem
+#### TripListItem
 Unified list item for both passenger and driver views:
 - Price, route, departure time
 - Pending bookings badge
@@ -127,14 +146,29 @@ Unified list item for both passenger and driver views:
 - Optional right element (buttons)
 - Dimmed style for history items
 
-## State Management
+#### ConfirmPopout
+VKUI Alert dialog for confirmations (replaces `window.confirm`):
+- Used via `routeNavigator.showPopout(<ConfirmPopout .../>)`
+- Customizable title, text, and confirm/cancel buttons
 
-### Passenger Panel
+#### ErrorSnackbar
+Transient error notification:
+- Auto-dismisses after user interaction
+- Optional retry action button
+
+#### NetworkError
+Full-page error placeholder:
+- Shown when initial data load fails
+- Retry button to refetch
+
+### State Management
+
+#### Passenger Panel
 - Search state persisted in `sessionStorage`
 - Restored on navigation back from ride details
 - Collapsible bookings section with history toggle
 
-### Driver Panel
+#### Driver Panel
 - Active trips as clickable panel list
 - Detail view with full TripCard
 - Decision loading states for approve/reject buttons
