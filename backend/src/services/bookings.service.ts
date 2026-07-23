@@ -254,7 +254,12 @@ export async function updateBooking(passengerId: string, bookingId: number, inpu
 
       const ride = booking.ride;
 
-      // Verify selected seats are offered
+      // 1. Check if ride has enough physical capacity for the newly requested seat count
+      if (ride.seatsAvailable < input.seatIds.length) {
+        throw new BookingError('NO_SEATS', 'Not enough seats available on this ride');
+      }
+
+      // 2. Verify selected seats are actually offered
       if (ride.offeredSeats.length > 0) {
         const invalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
         if (invalidSeats.length > 0) {
@@ -262,7 +267,7 @@ export async function updateBooking(passengerId: string, bookingId: number, inpu
         }
       }
 
-      // Prevent booking seats already approved or pending for another passenger
+      // 3. Prevent booking seats already approved or pending for another passenger
       const blockingBookings = await tx.booking.findMany({
         where: {
           rideId: ride.id,

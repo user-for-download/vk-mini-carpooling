@@ -16,7 +16,6 @@ import { DriverPanel } from './panels/DriverPanel';
 import { RideDetails } from './panels/RideDetails';
 import { initUser } from './api/user';
 
-// Error boundary to prevent white screen crashes (H24)
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: ReactNode }) {
     super(props);
@@ -46,9 +45,6 @@ function useVkAppearance(): AppearanceType {
   const [appearance, setAppearance] = useState<AppearanceType>('light');
 
   useEffect(() => {
-    // VKBridge's subscribe/unsubscribe types are incompatible with each other.
-    // The handler passed to subscribe expects (event) => void, but unsubscribe
-    // expects the same function back — and the overloaded signatures don't line up.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handler: Parameters<typeof bridge.subscribe>[0] = ((e: any) => {
       if (e.detail.type === 'VKWebAppUpdateConfig' && 'appearance' in e.detail.data) {
@@ -68,21 +64,31 @@ function Layout() {
   const [userReady, setUserReady] = useState(false);
 
   useEffect(() => {
-    // Auto-initialize user on app launch to prevent FK crashes
     async function ensureUser() {
       try {
-        // In real VK: get user info from bridge; in dev mode: use mock defaults
         if (import.meta.env.DEV && !window.location.search.includes('vk_user_id')) {
           const mockUser = new URLSearchParams(window.location.search).get('mock_user') ?? 'passenger';
-          const id = mockUser === 'driver' ? '111111111' : '222222222';
-          await initUser({ firstName: mockUser === 'driver' ? 'Alex' : 'Ivan', lastName: mockUser === 'driver' ? 'Driver' : 'Smirnov' });
-        } else {
-          const vkUserInfo = await bridge.send('VKWebAppGetUserInfo');
-          await initUser({
-            firstName: vkUserInfo.first_name,
-            lastName: vkUserInfo.last_name,
-            photoUrl: vkUserInfo.photo_200,
+          await initUser({ 
+            firstName: mockUser === 'driver' ? 'Alex' : 'Ivan', 
+            lastName: mockUser === 'driver' ? 'Driver' : 'Smirnov' 
           });
+        } else {
+          let firstName = undefined;
+          let lastName = undefined;
+          let photoUrl = undefined;
+          
+          try {
+            // This can throw if the user clicks "Deny" on the VK permissions popup
+            const vkUserInfo = await bridge.send('VKWebAppGetUserInfo');
+            firstName = vkUserInfo.first_name;
+            lastName = vkUserInfo.last_name;
+            photoUrl = vkUserInfo.photo_200;
+          } catch (bridgeErr) {
+            console.warn('VKWebAppGetUserInfo denied or failed. Initializing with default data.', bridgeErr);
+          }
+          
+          // The backend implicitly gets their vk_user_id from the Launch Params HMAC token
+          await initUser({ firstName, lastName, photoUrl });
         }
       } catch (err) {
         console.error('Failed to init user:', err);

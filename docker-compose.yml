@@ -26,7 +26,10 @@ services:
     environment:
       DATABASE_URL: postgres://local_blablacar:local_blablacar@postgres:5432/local_blablacar
       VK_APP_SECRET: testsecret
+      # IMPORTANT: Keep MOCK=true and NODE_ENV=development for local docker testing
+      # For true production, remove NODE_ENV (defaults to production from Dockerfile) and set MOCK=false
       VK_AUTH_MOCK_ENABLED: "true"
+      NODE_ENV: "development"
     depends_on:
       postgres:
         condition: service_healthy
