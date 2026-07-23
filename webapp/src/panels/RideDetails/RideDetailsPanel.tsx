@@ -159,7 +159,7 @@ export function RideDetailsPanel({ nav }: Props) {
       <PanelHeader
         before={
           <PanelHeaderBack
-            onClick={() => { if (!loading) window.history.back(); }}
+            onClick={() => { if (!loading) routeNavigator.push('/passenger'); }}
             style={{ opacity: loading ? 0.5 : 1, pointerEvents: loading ? 'none' : 'auto' }}
           />
         }
