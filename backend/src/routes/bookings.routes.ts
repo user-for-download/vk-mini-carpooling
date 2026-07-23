@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { CreateBookingSchema, UpdateBookingStatusSchema } from '@local-blablacar/contracts';
+import { CreateBookingSchema, UpdateBookingStatusSchema, UpdateBookingSchema } from '@local-blablacar/contracts';
 import { vkAuthMiddleware } from '../middleware/vkAuth';
-import { BookingError, cancelBooking, createBooking, listMyBookings, updateBookingStatus } from '../services/bookings.service';
+import { BookingError, cancelBooking, createBooking, listMyBookings, updateBooking, updateBookingStatus } from '../services/bookings.service';
 
 export const bookingsRoutes = new Hono();
 
@@ -41,6 +41,15 @@ bookingsRoutes.patch('/:id/status', vkAuthMiddleware, zValidator('json', UpdateB
   if (Number.isNaN(bookingId)) return c.json({ error: 'Invalid booking id' }, 400);
   const body = c.req.valid('json');
   const booking = await updateBookingStatus({ driverId, bookingId, status: body.status });
+  return c.json(booking);
+});
+
+bookingsRoutes.patch('/:id', vkAuthMiddleware, zValidator('json', UpdateBookingSchema), async (c) => {
+  const passengerId = c.get('userId');
+  const bookingId = Number(c.req.param('id'));
+  if (Number.isNaN(bookingId)) return c.json({ error: 'Invalid booking id' }, 400);
+  const body = c.req.valid('json');
+  const booking = await updateBooking(passengerId, bookingId, body);
   return c.json(booking);
 });
 

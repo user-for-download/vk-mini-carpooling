@@ -1,4 +1,4 @@
-import type { CreateBookingInput, UpdateBookingStatusInput } from '@local-blablacar/contracts';
+import type { CreateBookingInput, UpdateBookingStatusInput, UpdateBookingInput } from '@local-blablacar/contracts';
 import { RIDE_STATUS, BOOKING_STATUS } from '@local-blablacar/contracts';
 import { prisma, env } from '../runtime';
 
@@ -203,6 +203,57 @@ export async function cancelBooking(passengerId: string, bookingId: number) {
         });
       }
       return tx.booking.delete({ where: { id: bookingId } });
+    },
+    { isolationLevel: 'Serializable' },
+  );
+}
+
+/**
+ * Update seats/note on an existing PENDING booking.
+ * Only the passenger who owns the booking can update it.
+ */
+export async function updateBooking(passengerId: string, bookingId: number, input: UpdateBookingInput) {
+  return prisma.$transaction(
+    async (tx) => {
+      const booking = await tx.booking.findUnique({
+        where: { id: bookingId },
+        include: { ride: true },
+      });
+      if (!booking) throw new BookingError('NOT_FOUND', 'Booking not found');
+      if (booking.passengerId !== passengerId) {
+        throw new BookingError('FORBIDDEN', 'Only the booking owner can update');
+      }
+      if (booking.status !== BOOKING_STATUS.PENDING) {
+        throw new BookingError('ALREADY_PROCESSED', 'Can only update pending bookings');
+      }
+
+      const ride = booking.ride;
+
+      // Verify selected seats are offered
+      if (ride.offeredSeats.length > 0) {
+        const invalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
+        if (invalidSeats.length > 0) {
+          throw new BookingError('NO_SEATS', 'Selected seats are not offered on this ride');
+        }
+      }
+
+      // Prevent booking seats already approved for another passenger
+      const approvedBookings = await tx.booking.findMany({
+        where: { rideId: ride.id, status: BOOKING_STATUS.APPROVED },
+      });
+      const takenSeats = new Set(approvedBookings.flatMap((b) => b.seatIds));
+      if (input.seatIds.some((id) => takenSeats.has(id))) {
+        throw new BookingError('NO_SEATS', 'One or more selected seats are already taken');
+      }
+
+      return tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          seatIds: input.seatIds,
+          seatsBooked: input.seatIds.length,
+          passengerNote: input.passengerNote ?? booking.passengerNote,
+        },
+      });
     },
     { isolationLevel: 'Serializable' },
   );

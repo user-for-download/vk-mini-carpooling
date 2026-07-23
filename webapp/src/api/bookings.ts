@@ -1,4 +1,4 @@
-import type { BookingDTO, CreateBookingInput, UpdateBookingStatusInput } from '@local-blablacar/contracts';
+import type { BookingDTO, CreateBookingInput, UpdateBookingStatusInput, UpdateBookingInput } from '@local-blablacar/contracts';
 import { api } from './client';
 
 export async function createBooking(input: CreateBookingInput): Promise<BookingDTO> {
@@ -16,6 +16,11 @@ export async function updateBookingStatus(
   input: UpdateBookingStatusInput,
 ): Promise<BookingDTO> {
   const { data } = await api.patch<BookingDTO>(`/api/bookings/${id}/status`, input);
+  return data;
+}
+
+export async function updateBooking(id: number, input: UpdateBookingInput): Promise<BookingDTO> {
+  const { data } = await api.patch<BookingDTO>(`/api/bookings/${id}`, input);
   return data;
 }
 

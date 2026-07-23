@@ -12,7 +12,7 @@ import {
 import { useParams, useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import type { RideDTO, BookingDTO } from '@local-blablacar/contracts';
 import { getRide } from '../api/rides';
-import { createBooking, cancelBooking as cancelBookingApi, listMyBookings } from '../api/bookings';
+import { createBooking, cancelBooking as cancelBookingApi, listMyBookings, updateBooking as updateBookingApi } from '../api/bookings';
 import { TripCard } from '../components/TripCard';
 import '../styles.css';
 
@@ -26,6 +26,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [passengerNote, setPassengerNote] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const ignoreRef = useRef(false);
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
     setError(null);
     setSelectedSeats([]);
     setPassengerNote('');
+    setIsEditing(false);
 
     const rideId = Number(params.id);
     if (Number.isNaN(rideId)) {
@@ -93,8 +95,38 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
       await cancelBookingApi(booking.id);
       const updatedBookings = await listMyBookings();
       setMyBookings(updatedBookings);
+      setIsEditing(false);
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось отменить';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleStartEdit() {
+    const booking = ride ? getBookingForRide(ride.id) : undefined;
+    if (booking) {
+      setSelectedSeats(booking.seatIds);
+      setPassengerNote(booking.passengerNote || '');
+    }
+    setIsEditing(true);
+  }
+
+  async function handleUpdate() {
+    const booking = ride ? getBookingForRide(ride.id) : undefined;
+    if (!booking || selectedSeats.length === 0) return;
+    if (!window.confirm(`Избронировать ${selectedSeats.length} мест(а)?`)) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      await updateBookingApi(booking.id, { seatIds: selectedSeats, passengerNote: passengerNote || undefined });
+      const updatedBookings = await listMyBookings();
+      setMyBookings(updatedBookings);
+      setIsEditing(false);
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Не удалось изменить бронирование';
       setError(message);
     } finally {
       setLoading(false);
@@ -159,10 +191,13 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
               );
             }}
             onBook={handleBook}
-            onCancel={handleCancel}
+            onUpdate={handleUpdate}
+            onCancel={isEditing ? () => setIsEditing(false) : handleCancel}
             mode="passenger"
             isBooked={booked}
             bookingStatus={currentBooking?.status}
+            isEditing={isEditing}
+            onStartEdit={handleStartEdit}
           />
         </Div>
       )}

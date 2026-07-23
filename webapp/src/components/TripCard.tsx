@@ -39,10 +39,13 @@ interface TripCardProps {
   onPassengerNoteChange?: (val: string) => void;
   onSelectSeat?: (seatId: number) => void;
   onBook?: () => void;
+  onUpdate?: () => void;
   onCancel?: () => void;
   mode?: 'driver' | 'passenger';
   isBooked?: boolean;
   bookingStatus?: string;
+  isEditing?: boolean;
+  onStartEdit?: () => void;
 }
 
 export function TripCard({
@@ -53,10 +56,13 @@ export function TripCard({
   onPassengerNoteChange,
   onSelectSeat,
   onBook,
+  onUpdate,
   onCancel,
   mode = 'passenger',
   isBooked = false,
   bookingStatus,
+  isEditing = false,
+  onStartEdit,
 }: TripCardProps) {
   const occupiedSeats = bookings
     .filter((b) => b.status === BOOKING_STATUS.APPROVED)
@@ -165,7 +171,7 @@ export function TripCard({
         {/* Actions & passenger comment field */}
         {mode === 'passenger' && (
           <div style={{ marginTop: 16 }}>
-            {isBooked ? (
+            {isBooked && !isEditing ? (
               <>
                 {bookingStatus === BOOKING_STATUS.PENDING && (
                   <div style={{
@@ -180,9 +186,34 @@ export function TripCard({
                     </Text>
                   </div>
                 )}
-                <Button size="l" stretched mode="secondary" onClick={onCancel}>
-                  Отменить бронь
-                </Button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {bookingStatus === BOOKING_STATUS.PENDING && (
+                    <Button size="l" stretched mode="primary" onClick={onStartEdit}>
+                      Изменить
+                    </Button>
+                  )}
+                  <Button size="l" stretched mode="secondary" onClick={onCancel}>
+                    Отменить
+                  </Button>
+                </div>
+              </>
+            ) : isBooked && isEditing ? (
+              <>
+                <FormItem top="Комментарий для водителя (необязательно)" style={{ padding: 0, marginBottom: 16 }}>
+                  <Textarea
+                    placeholder="Например: со мной будет большая сумка"
+                    value={passengerNote}
+                    onChange={(e) => onPassengerNoteChange?.(e.target.value)}
+                  />
+                </FormItem>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Button size="l" stretched mode="primary" appearance="positive" onClick={onUpdate} disabled={selectedSeats.length === 0}>
+                    Сохранить ({selectedSeats.length} мест)
+                  </Button>
+                  <Button size="l" stretched mode="secondary" onClick={onCancel}>
+                    Отмена
+                  </Button>
+                </div>
               </>
             ) : (
               <>

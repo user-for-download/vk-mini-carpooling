@@ -18,6 +18,13 @@ export const UpdateBookingStatusSchema = z.object({
 });
 export type UpdateBookingStatusInput = z.infer<typeof UpdateBookingStatusSchema>;
 
+/** What a passenger submits to change seats on an existing booking. */
+export const UpdateBookingSchema = z.object({
+  seatIds: z.array(z.number().int().positive()).min(1).max(5),
+  passengerNote: z.string().max(500).optional(),
+});
+export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;
+
 /** Minimal ride reference embedded in BookingDTO (avoids circular reference with RideDTO). */
 const RideRefSchema = z.object({
   id: z.number().int(),
