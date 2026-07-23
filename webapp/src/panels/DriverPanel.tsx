@@ -26,18 +26,19 @@ import { formatRideDateTime, formatPrice } from '../utils/format';
 import { SEATS } from '../utils/constants';
 import '../styles.css';
 
-type View = 'list' | 'create' | 'rides';
+type View = 'list' | 'create' | 'detail';
 
 export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   const routeNavigator = useRouteNavigator();
   const [view, setView] = useState<View>('list');
   const { locations, loading: locationsLoading, error: locationsError } = useLocations();
   const [myRides, setMyRides] = useState<RideDTO[]>([]);
+  const [selectedRide, setSelectedRide] = useState<RideDTO | null>(null);
   const [form, setForm] = useState({
     fromId: '',
     toId: '',
     departureTime: '',
-    offeredSeats: [2, 3, 4, 5], // Seat 1 is driver, not offered to passengers
+    offeredSeats: [2, 3, 4, 5],
     price: 0,
     driverNote: '',
   });
@@ -92,6 +93,12 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
     try {
       await updateBookingStatus(bookingId, { status });
       await refresh();
+      // Update selected ride with fresh data
+      if (selectedRide) {
+        const updated = await listMyRides();
+        const fresh = updated.find((r) => r.id === selectedRide.id);
+        if (fresh) setSelectedRide(fresh);
+      }
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось обработать заявку';
       setError(message);
@@ -102,9 +109,11 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
 
   async function handleCancelRide(rideId: number) {
     if (!window.confirm('Вы уверены, что хотите отменить поездку? Действие нельзя будет отменить.')) return;
-    setError(null); // Clear previous errors (L14)
+    setError(null);
     try {
       await cancelRideApi(rideId);
+      setSelectedRide(null);
+      setView('list');
       await refresh();
     } catch (err: any) {
       const message = err.response?.data?.message || 'Не удалось отменить поездку';
@@ -112,12 +121,17 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
     }
   }
 
+  function openRideDetail(ride: RideDTO) {
+    setSelectedRide(ride);
+    setView('detail');
+  }
+
   const activeRides = myRides.filter((r) => r.status === RIDE_STATUS.ACTIVE);
 
   return (
     <PanelType {...props}>
-      <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
-        Водитель
+      <PanelHeader before={<PanelHeaderBack onClick={() => view === 'list' ? routeNavigator.push('/') : setView('list')} />}>
+        {view === 'detail' ? 'Детали поездки' : 'Водитель'}
       </PanelHeader>
 
       {error && (
@@ -136,9 +150,21 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
         </Div>
       )}
 
-      {/* List View */}
+      {/* List View - Simple panels for active trips */}
       {view === 'list' && (
         <Div style={{ paddingBottom: 100 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Title level="3">Активные поездки</Title>
+            <Button
+              size="s"
+              mode="primary"
+              appearance="positive"
+              onClick={() => setView('create')}
+            >
+              Создать
+            </Button>
+          </div>
+
           {activeRides.length === 0 ? (
             <Card mode="shadow" style={{ textAlign: 'center', padding: 40 }}>
               <Title level="3" style={{ marginBottom: 8 }}>
@@ -157,96 +183,127 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
               </Button>
             </Card>
           ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Title level="3">Активные поездки</Title>
-                <Button
-                  size="s"
-                  mode="primary"
-                  appearance="positive"
-                  onClick={() => setView('create')}
+            activeRides.map((ride) => {
+              const pendingCount = ride.bookings?.filter((b) => b.status === BOOKING_STATUS.PENDING).length || 0;
+              const approvedCount = ride.bookings?.filter((b) => b.status === BOOKING_STATUS.APPROVED).length || 0;
+              return (
+                <Card
+                  key={ride.id}
+                  mode="shadow"
+                  style={{ marginBottom: 12, cursor: 'pointer' }}
+                  onClick={() => openRideDetail(ride)}
                 >
-                  Создать
-                </Button>
-              </div>
+                  <Div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Title level="3" style={{ color: 'var(--vkui-color-text-accent)', marginBottom: 4 }}>
+                          {formatPrice(ride.price)}
+                        </Title>
+                        <Text style={{ marginBottom: 4 }}>
+                          {ride.from?.name} → {ride.to?.name}
+                        </Text>
+                        <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
+                          {formatRideDateTime(ride.departureTime)}
+                        </Text>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        {pendingCount > 0 && (
+                          <div style={{
+                            background: 'var(--vkui-color-background-warning, #ffb74d)',
+                            borderRadius: 12,
+                            padding: '4px 8px',
+                            marginBottom: 4,
+                          }}>
+                            <Text style={{ fontSize: 12, fontWeight: 600 }}>
+                              {pendingCount} заяв.
+                            </Text>
+                          </div>
+                        )}
+                        <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 12 }}>
+                          {approvedCount}/{ride.seatsAvailable} мест
+                        </Text>
+                      </div>
+                    </div>
+                  </Div>
+                </Card>
+              );
+            })
+          )}
 
-              {activeRides.map((ride) => (
-                <div key={ride.id} style={{ marginBottom: 12 }}>
-                  <TripCard
-                    ride={ride}
-                    bookings={ride.bookings}
-                    mode="driver"
-                  />
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8, padding: '0 16px' }}>
+          {myRides.length > 0 && (
+            <Button
+              size="l"
+              stretched
+              mode="secondary"
+              onClick={refresh}
+              style={{ marginTop: 12 }}
+            >
+              Обновить
+            </Button>
+          )}
+        </Div>
+      )}
+
+      {/* Detail View - Full trip card with bookings */}
+      {view === 'detail' && selectedRide && (
+        <Div style={{ paddingBottom: 100 }}>
+          <TripCard
+            ride={selectedRide}
+            bookings={selectedRide.bookings}
+            mode="driver"
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <Button
+              size="l"
+              stretched
+              mode="secondary"
+              onClick={() => handleCancelRide(selectedRide.id)}
+            >
+              Отменить поездку
+            </Button>
+          </div>
+
+          {/* Pending bookings */}
+          {selectedRide.bookings?.filter((b) => b.status === BOOKING_STATUS.PENDING).map((booking) => (
+            <Card key={booking.id} mode="shadow" style={{ marginTop: 12 }}>
+              <Div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ fontWeight: 500 }}>
+                      {booking.passenger?.firstName} {booking.passenger?.lastName}
+                    </Text>
+                    <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
+                      {booking.seatsBooked} мест ({(booking.seatIds || []).map((id) => SEATS.find((s) => s.id === id)?.label).join(', ')})
+                    </Text>
+                    {booking.passengerNote != null && booking.passengerNote !== '' && (
+                      <Text style={{ fontSize: 13, color: 'var(--vkui--color_text_secondary)', fontStyle: 'italic', marginTop: 4 }}>
+                        «{booking.passengerNote}»
+                      </Text>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Button
+                      size="s"
+                      mode="primary"
+                      appearance="positive"
+                      onClick={() => handleDecision(booking.id, BOOKING_STATUS.APPROVED)}
+                      disabled={decisionLoading === booking.id}
+                    >
+                      {decisionLoading === booking.id ? '...' : 'Да'}
+                    </Button>
                     <Button
                       size="s"
                       mode="secondary"
-                      onClick={() => handleCancelRide(ride.id)}
-                      style={{ flex: 1 }}
+                      onClick={() => handleDecision(booking.id, BOOKING_STATUS.REJECTED)}
+                      disabled={decisionLoading === booking.id}
                     >
-                      Отменить поездку
+                      Отклонить
                     </Button>
                   </div>
-                  {ride.bookings?.filter((b) => b.status === BOOKING_STATUS.PENDING).map((booking) => (
-                    <div
-                      key={booking.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '12px 16px',
-                        borderTop: '1px solid var(--vkui-color-separator)',
-                        marginTop: 8,
-                      }}
-                    >
-                      <div>
-                        <Text style={{ fontWeight: 500 }}>
-                          Заявка: {booking.passenger?.firstName} {booking.passenger?.lastName}
-                        </Text>
-                        <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-                          {booking.seatsBooked} мест ({(booking.seatIds || []).map((id) => SEATS.find((s) => s.id === id)?.label).join(', ')})
-                        </Text>
-                        {booking.passengerNote != null && booking.passengerNote !== '' && (
-                          <Text style={{ fontSize: 13, color: 'var(--vkui--color_text_secondary)', fontStyle: 'italic', marginTop: 4 }}>
-                            «{booking.passengerNote}»
-                          </Text>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <Button
-                          size="s"
-                          mode="primary"
-                          appearance="positive"
-                          onClick={() => handleDecision(booking.id, BOOKING_STATUS.APPROVED)}
-                          disabled={decisionLoading === booking.id}
-                        >
-                          {decisionLoading === booking.id ? '...' : 'Да'}
-                        </Button>
-                        <Button
-                          size="s"
-                          mode="secondary"
-                          onClick={() => handleDecision(booking.id, BOOKING_STATUS.REJECTED)}
-                          disabled={decisionLoading === booking.id}
-                        >
-                          Отклонить
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
                 </div>
-              ))}
-
-              <Button
-                size="l"
-                stretched
-                mode="secondary"
-                onClick={() => setView('rides')}
-                style={{ marginTop: 12 }}
-              >
-                Все мои поездки ({myRides.length})
-              </Button>
-            </>
-          )}
+              </Div>
+            </Card>
+          ))}
         </Div>
       )}
 
@@ -350,78 +407,6 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
               </Button>
             </Div>
           </Card>
-        </Div>
-      )}
-
-      {/* All Rides View */}
-      {view === 'rides' && (
-        <Div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Title level="3">Все мои поездки</Title>
-            <Button
-              size="s"
-              mode="secondary"
-              onClick={() => setView('list')}
-            >
-              Назад
-            </Button>
-          </div>
-
-          {myRides.length === 0 ? (
-            <Card mode="shadow" style={{ textAlign: 'center', padding: 40 }}>
-              <Title level="3" style={{ marginBottom: 8 }}>
-                Нет поездок
-              </Title>
-              <Text style={{ color: 'var(--vkui-color-text-secondary)' }}>
-                Создайте первую поездку
-              </Text>
-            </Card>
-          ) : (
-            myRides.map((ride) => (
-              <Card key={ride.id} mode="shadow" style={{ marginBottom: 12 }}>
-                <Div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <Title level="3" style={{ color: 'var(--vkui-color-text-accent)' }}>
-                          {formatPrice(ride.price)}
-                        </Title>
-                        <Text style={{
-                          fontSize: 12,
-                          color: ride.status === RIDE_STATUS.ACTIVE
-                            ? 'var(--vkui-color-text-positive)'
-                            : ride.status === RIDE_STATUS.CANCELLED
-                            ? 'var(--vkui-color-text-negative)'
-                            : 'var(--vkui-color-text-secondary)',
-                        }}>
-                          {ride.status === RIDE_STATUS.ACTIVE && 'Активна'}
-                          {ride.status === RIDE_STATUS.COMPLETED && 'Завершена'}
-                          {ride.status === RIDE_STATUS.CANCELLED && 'Отменена'}
-                        </Text>
-                      </div>
-                      <Text style={{ marginBottom: 4 }}>
-                        {ride.from?.name} → {ride.to?.name}
-                      </Text>
-                      <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
-                        {formatRideDateTime(ride.departureTime)}
-                        {' · '}{ride.seatsAvailable} мест · {ride.bookings?.length || 0} заявок
-                      </Text>
-                    </div>
-
-                    {ride.status === RIDE_STATUS.ACTIVE && (
-                      <Button
-                        size="s"
-                        mode="secondary"
-                        onClick={() => handleCancelRide(ride.id)}
-                      >
-                        Отменить
-                      </Button>
-                    )}
-                  </div>
-                </Div>
-              </Card>
-            ))
-          )}
         </Div>
       )}
     </PanelType>
