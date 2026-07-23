@@ -39,7 +39,29 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
         throw new BookingError('FORBIDDEN', 'Drivers cannot book their own ride');
       }
 
-      // 1. Verify selected seats are actually offered by the driver
+      // 1. Check if passenger already has a record (to avoid Prisma unique constraint crash)
+      const existingBooking = await tx.booking.findUnique({
+        where: { rideId_passengerId: { rideId: ride.id, passengerId } },
+      });
+
+      if (existingBooking) {
+        if (existingBooking.status === BOOKING_STATUS.PENDING || existingBooking.status === BOOKING_STATUS.APPROVED) {
+          throw new BookingError('ALREADY_PROCESSED', 'You already have an active booking for this ride');
+        }
+        // Reuse the cancelled/rejected booking record safely, refresh createdAt
+        return tx.booking.update({
+          where: { id: existingBooking.id },
+          data: {
+            status: BOOKING_STATUS.PENDING,
+            seatsBooked: input.seatIds.length,
+            seatIds: input.seatIds,
+            passengerNote: input.passengerNote || null,
+            createdAt: new Date(),
+          }
+        });
+      }
+
+      // 2. Verify selected seats are actually offered by the driver
       if (ride.offeredSeats.length > 0) {
         const invalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
         if (invalidSeats.length > 0) {
@@ -47,7 +69,7 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
         }
       }
 
-      // 2. Prevent booking seats that are already APPROVED or PENDING for another passenger
+      // 3. Prevent booking seats that are already APPROVED or PENDING for another passenger
       const blockingBookings = await tx.booking.findMany({
         where: { rideId: ride.id, status: { in: [BOOKING_STATUS.APPROVED, BOOKING_STATUS.PENDING] } },
       });
@@ -56,7 +78,7 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
         throw new BookingError('NO_SEATS', 'One or more selected seats are already taken or pending');
       }
 
-      // 3. Check max booking count (only future/active rides)
+      // 4. Check max booking count (only future/active rides)
       const activeBookingCount = await tx.booking.count({
         where: {
           passengerId,
@@ -96,28 +118,6 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
           'TIME_CONFLICT',
           `You already have a booking for a ride at a similar time (${conflictingBooking.ride.departureTime})`,
         );
-      }
-
-      // 5. Check if passenger already has a record (to avoid Prisma unique constraint crash)
-      const existingBooking = await tx.booking.findUnique({
-        where: { rideId_passengerId: { rideId: ride.id, passengerId } },
-      });
-
-      if (existingBooking) {
-        if (existingBooking.status === BOOKING_STATUS.PENDING || existingBooking.status === BOOKING_STATUS.APPROVED) {
-          throw new BookingError('ALREADY_PROCESSED', 'You already have an active booking for this ride');
-        }
-        // Reuse the cancelled/rejected booking record safely, refresh createdAt
-        return tx.booking.update({
-          where: { id: existingBooking.id },
-          data: {
-            status: BOOKING_STATUS.PENDING,
-            seatsBooked: input.seatIds.length,
-            seatIds: input.seatIds,
-            passengerNote: input.passengerNote || null,
-            createdAt: new Date(),
-          }
-        });
       }
 
       return tx.booking.create({

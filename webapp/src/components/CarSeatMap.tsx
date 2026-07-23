@@ -98,7 +98,7 @@ export function CarSeatMap({
 
   function handleClick(seatId: number) {
     const st = getSeatStatus(seatId);
-    if (mode === 'view' || st === 'driver' || st === 'unoffered' || st === 'occupied') return;
+    if (mode === 'view' || st === 'driver' || (st === 'unoffered' && mode !== 'create') || st === 'occupied') return;
     onSelectSeat?.(seatId);
   }
 

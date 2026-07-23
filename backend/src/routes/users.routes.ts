@@ -13,7 +13,11 @@ usersRoutes.get('/me', vkAuthMiddleware, async (c) => {
   return c.json(user ?? null);
 });
 
-usersRoutes.post('/init', vkAuthMiddleware, zValidator('json', InitUserSchema), async (c) => {
+usersRoutes.post('/init', vkAuthMiddleware, zValidator('json', InitUserSchema, (result, c) => {
+  if (!result.success) {
+    return c.json({ error: 'VALIDATION_ERROR', message: result.error.issues[0].message }, 400);
+  }
+}), async (c) => {
   const userId = c.get('userId');
   const platform = c.get('vkPlatform');
   const body = c.req.valid('json');

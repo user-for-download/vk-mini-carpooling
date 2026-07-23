@@ -196,7 +196,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
             passengerNote={isEditing ? passengerNote : (currentBooking?.passengerNote || passengerNote)}
             onPassengerNoteChange={setPassengerNote}
             onSelectSeat={(seatId) => {
-              if (!isEditing) return;
+              if (isBooked && !isEditing) return;
               setSelectedSeats((prev) =>
                 prev.includes(seatId)
                   ? prev.filter((s) => s !== seatId)
