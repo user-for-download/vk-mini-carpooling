@@ -267,6 +267,7 @@ export type BookingOrderByWithRelationInput = {
 
 export type BookingWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  rideId_passengerId?: Prisma.BookingRideIdPassengerIdCompoundUniqueInput
   AND?: Prisma.BookingWhereInput | Prisma.BookingWhereInput[]
   OR?: Prisma.BookingWhereInput[]
   NOT?: Prisma.BookingWhereInput | Prisma.BookingWhereInput[]
@@ -279,7 +280,7 @@ export type BookingWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   ride?: Prisma.XOR<Prisma.RideScalarRelationFilter, Prisma.RideWhereInput>
   passenger?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-}, "id">
+}, "id" | "rideId_passengerId">
 
 export type BookingOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -391,6 +392,11 @@ export type BookingListRelationFilter = {
 
 export type BookingOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type BookingRideIdPassengerIdCompoundUniqueInput = {
+  rideId: number
+  passengerId: string
 }
 
 export type BookingCountOrderByAggregateInput = {
