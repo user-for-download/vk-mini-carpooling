@@ -26,9 +26,11 @@ import '../styles.css';
 type View = 'list' | 'create' | 'rides';
 
 const SEATS = [
-  { id: 1, label: 'В', position: 'front' as const },
-  { id: 2, label: 'Л', position: 'back-left' as const },
-  { id: 3, label: 'П', position: 'back-right' as const },
+  { id: 1, label: 'В', position: 'driver' as const },
+  { id: 2, label: 'ПП', position: 'front-passenger' as const },
+  { id: 3, label: 'ЗЛ', position: 'rear-left' as const },
+  { id: 4, label: 'ЗЦ', position: 'rear-center' as const },
+  { id: 5, label: 'ЗП', position: 'rear-right' as const },
 ];
 
 export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
@@ -40,7 +42,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
     fromId: '',
     toId: '',
     departureTime: '',
-    offeredSeats: [1, 2, 3],
+    offeredSeats: [1, 2, 3, 4, 5],
     price: '0',
   });
   const [loading, setLoading] = useState(false);
@@ -66,7 +68,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
         offeredSeats: form.offeredSeats,
         price: Number(form.price),
       });
-      setForm({ fromId: '', toId: '', departureTime: '', offeredSeats: [1, 2, 3], price: '0' });
+      setForm({ fromId: '', toId: '', departureTime: '', offeredSeats: [1, 2, 3, 4, 5], price: '0' });
       setView('list');
       await refresh();
     } catch (err: any) {

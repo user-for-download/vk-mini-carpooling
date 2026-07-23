@@ -43,9 +43,11 @@ interface TripCardProps {
 }
 
 const SEATS = [
-  { id: 1, label: 'В', position: 'front' as const },
-  { id: 2, label: 'Л', position: 'back-left' as const },
-  { id: 3, label: 'П', position: 'back-right' as const },
+  { id: 1, label: 'В', position: 'driver' as const },
+  { id: 2, label: 'ПП', position: 'front-passenger' as const },
+  { id: 3, label: 'ЗЛ', position: 'rear-left' as const },
+  { id: 4, label: 'ЗЦ', position: 'rear-center' as const },
+  { id: 5, label: 'ЗП', position: 'rear-right' as const },
 ];
 
 export function TripCard({
@@ -104,7 +106,7 @@ export function TripCard({
             selectedSeats={selectedSeats}
             occupiedSeats={occupiedSeats}
             offeredSeats={ride.offeredSeats}
-            maxSeats={3}
+            maxSeats={5}
             onSelectSeat={onSelectSeat}
             mode={mode === 'passenger' && !isBooked ? 'select' : 'view'}
           />
