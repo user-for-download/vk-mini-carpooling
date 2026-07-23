@@ -39,6 +39,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const [bookingLoading, setBookingLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Record<number, number[]>>({});
+  const [showHistory, setShowHistory] = useState(false);
   const ignoreRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -158,7 +159,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
         </Div>
       )}
 
-      {/* My Bookings Section - Always visible at top */}
+      {/* My Bookings Section - Collapsible */}
       <Div style={{ paddingBottom: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <Title level="3">Мои бронирования ({activeBookings.length}/{MAX_BOOKING_COUNT})</Title>
@@ -179,55 +180,73 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
           </Card>
         ) : (
           <>
-            {/* Active bookings */}
-            {activeBookings.map((booking) => (
-              <TripListItem
-                key={booking.id}
-                ride={{
-                  id: booking.rideId,
-                  price: booking.ride?.price || 0,
-                  seatsAvailable: booking.ride?.seatsAvailable || 0,
-                  departureTime: booking.ride?.departureTime || '',
-                  from: booking.ride?.from,
-                  to: booking.ride?.to,
-                  bookings: [{ id: booking.id, status: booking.status, seatsBooked: booking.seatsBooked, seatIds: booking.seatIds }],
-                }}
-                onClick={() => routeNavigator.push(`/ride/${booking.rideId}`)}
-                rightElement={
-                  <Button
-                    size="s"
-                    mode="secondary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCancelBooking(booking.id);
-                    }}
-                  >
-                    Отменить
-                  </Button>
-                }
-              />
-            ))}
-
-            {/* History bookings */}
-            {historyBookings.length > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <Text style={{ color: 'var(--vkui-color-text-tertiary)', fontSize: 12, marginBottom: 8 }}>
-                  История
+            {/* Active bookings - always visible */}
+            {activeBookings.length === 0 ? (
+              <Card mode="shadow" style={{ textAlign: 'center', padding: 16 }}>
+                <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
+                  Нет активных бронирований
                 </Text>
-                {historyBookings.slice(0, 5).map((booking) => (
-                  <TripListItem
-                    key={booking.id}
-                    ride={{
-                      id: booking.rideId,
-                      price: booking.ride?.price || 0,
-                      seatsAvailable: booking.ride?.seatsAvailable || 0,
-                      departureTime: booking.ride?.departureTime || '',
-                      from: booking.ride?.from,
-                      to: booking.ride?.to,
-                    }}
-                    dimmed
-                  />
-                ))}
+              </Card>
+            ) : (
+              activeBookings.map((booking) => (
+                <TripListItem
+                  key={booking.id}
+                  ride={{
+                    id: booking.rideId,
+                    price: booking.ride?.price || 0,
+                    seatsAvailable: booking.ride?.seatsAvailable || 0,
+                    departureTime: booking.ride?.departureTime || '',
+                    from: booking.ride?.from,
+                    to: booking.ride?.to,
+                    bookings: [{ id: booking.id, status: booking.status, seatsBooked: booking.seatsBooked, seatIds: booking.seatIds }],
+                  }}
+                  onClick={() => routeNavigator.push(`/ride/${booking.rideId}`)}
+                  rightElement={
+                    <Button
+                      size="s"
+                      mode="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCancelBooking(booking.id);
+                      }}
+                    >
+                      Отменить
+                    </Button>
+                  }
+                />
+              ))
+            )}
+
+            {/* History section - collapsible */}
+            {historyBookings.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <Button
+                  size="s"
+                  mode="tertiary"
+                  onClick={() => setShowHistory(!showHistory)}
+                  style={{ marginBottom: showHistory ? 8 : 0 }}
+                >
+                  {showHistory ? '▲ Скрыть историю' : `▼ История (${historyBookings.length})`}
+                </Button>
+
+                {showHistory && (
+                  <div style={{ marginTop: 8 }}>
+                    {historyBookings.map((booking) => (
+                      <TripListItem
+                        key={booking.id}
+                        ride={{
+                          id: booking.rideId,
+                          price: booking.ride?.price || 0,
+                          seatsAvailable: booking.ride?.seatsAvailable || 0,
+                          departureTime: booking.ride?.departureTime || '',
+                          from: booking.ride?.from,
+                          to: booking.ride?.to,
+                        }}
+                        dimmed
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>
