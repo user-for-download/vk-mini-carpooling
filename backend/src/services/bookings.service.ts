@@ -28,9 +28,11 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
       }
 
       // 1. Verify selected seats are actually offered by the driver
-      const invalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
-      if (invalidSeats.length > 0) {
-        throw new BookingError('NO_SEATS', 'Selected seats are not offered on this ride');
+      if (ride.offeredSeats.length > 0) {
+        const invalidSeats = input.seatIds.filter((id) => !ride.offeredSeats.includes(id));
+        if (invalidSeats.length > 0) {
+          throw new BookingError('NO_SEATS', 'Selected seats are not offered on this ride');
+        }
       }
 
       // 2. Prevent booking seats that are already APPROVED
