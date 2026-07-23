@@ -25,7 +25,7 @@ interface CarSeatMapProps {
   mode?: 'select' | 'view' | 'create';
 }
 
-/* ── Design tokens (dark theme) ── */
+/* ── Design tokens (lighter car, dark accents) ── */
 const T = {
   asphalt: '#161C29',
   card: '#1E2636',
@@ -37,6 +37,12 @@ const T = {
   ionGlow: 'rgba(79,216,201,0.55)',
   ember: '#FFB454',
   danger: '#0E1420',
+  carBody1: '#8CA0C0',
+  carBody2: '#6B82A8',
+  carGlass1: '#B8D4F0',
+  carGlass2: '#9BBDE0',
+  carRoof: '#7A94B8',
+  carStroke: '#5A7090',
 } as const;
 
 type SeatStatus = 'available' | 'selected' | 'occupied' | 'unoffered' | 'driver';
@@ -158,54 +164,54 @@ export function CarSeatMap({
         <svg viewBox="0 0 300 460" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
           <defs>
             <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2E3A54" />
-              <stop offset="100%" stopColor="#1E2738" />
+              <stop offset="0%" stopColor={T.carBody1} />
+              <stop offset="100%" stopColor={T.carBody2} />
             </linearGradient>
             <linearGradient id="glassGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0E1420" />
-              <stop offset="100%" stopColor="#182238" />
+              <stop offset="0%" stopColor={T.carGlass1} />
+              <stop offset="100%" stopColor={T.carGlass2} />
             </linearGradient>
             <linearGradient id="roofGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#28334B" />
-              <stop offset="100%" stopColor="#202A3E" />
+              <stop offset="0%" stopColor={T.carRoof} />
+              <stop offset="100%" stopColor={T.carBody2} />
             </linearGradient>
           </defs>
 
           {/* shadow */}
-          <ellipse cx="150" cy="440" rx="95" ry="16" fill="#000" opacity="0.35" />
+          <ellipse cx="150" cy="440" rx="95" ry="16" fill="#000" opacity="0.2" />
 
           {/* wheels */}
-          <rect x="18" y="88" width="22" height="66" rx="9" fill="#0F1420" stroke="#333F5A" strokeWidth="2" />
-          <rect x="260" y="88" width="22" height="66" rx="9" fill="#0F1420" stroke="#333F5A" strokeWidth="2" />
-          <rect x="18" y="304" width="22" height="66" rx="9" fill="#0F1420" stroke="#333F5A" strokeWidth="2" />
-          <rect x="260" y="304" width="22" height="66" rx="9" fill="#0F1420" stroke="#333F5A" strokeWidth="2" />
+          <rect x="18" y="88" width="22" height="66" rx="9" fill="#2A3548" stroke={T.carStroke} strokeWidth="2" />
+          <rect x="260" y="88" width="22" height="66" rx="9" fill="#2A3548" stroke={T.carStroke} strokeWidth="2" />
+          <rect x="18" y="304" width="22" height="66" rx="9" fill="#2A3548" stroke={T.carStroke} strokeWidth="2" />
+          <rect x="260" y="304" width="22" height="66" rx="9" fill="#2A3548" stroke={T.carStroke} strokeWidth="2" />
 
           {/* side mirrors */}
-          <rect x="38" y="132" width="14" height="20" rx="5" fill="#28334B" stroke="#3A4560" strokeWidth="1.5" />
-          <rect x="248" y="132" width="14" height="20" rx="5" fill="#28334B" stroke="#3A4560" strokeWidth="1.5" />
+          <rect x="38" y="132" width="14" height="20" rx="5" fill={T.carRoof} stroke={T.carStroke} strokeWidth="1.5" />
+          <rect x="248" y="132" width="14" height="20" rx="5" fill={T.carRoof} stroke={T.carStroke} strokeWidth="1.5" />
 
           {/* body */}
           <path d="M150,18 C194,18 224,34 235,68 L247,148 C251,170 251,290 247,312 L235,392 C224,426 194,442 150,442 C106,442 76,426 65,392 L53,312 C49,290 49,170 53,148 L65,68 C76,34 106,18 150,18Z"
-            fill="url(#bodyGrad)" stroke="#333F5A" strokeWidth="2" />
+            fill="url(#bodyGrad)" stroke={T.carStroke} strokeWidth="2" />
 
           {/* windshield */}
-          <path d="M104,52 L196,52 L222,148 L78,148Z" fill="url(#glassGrad)" opacity="0.9" />
+          <path d="M104,52 L196,52 L222,148 L78,148Z" fill="url(#glassGrad)" opacity="0.85" />
           {/* rear window */}
-          <path d="M78,312 L222,312 L198,404 L102,404Z" fill="url(#glassGrad)" opacity="0.9" />
+          <path d="M78,312 L222,312 L198,404 L102,404Z" fill="url(#glassGrad)" opacity="0.85" />
 
           {/* roof / cabin panel */}
-          <rect x="78" y="148" width="144" height="164" rx="18" fill="url(#roofGrad)" stroke="#333F5A" strokeWidth="1.5" />
+          <rect x="78" y="148" width="144" height="164" rx="18" fill="url(#roofGrad)" stroke={T.carStroke} strokeWidth="1.5" />
           {/* front console divider */}
-          <line x1="150" y1="165" x2="150" y2="215" stroke="#333F5A" strokeWidth="1.5" strokeDasharray="3 6" />
+          <line x1="150" y1="165" x2="150" y2="215" stroke={T.carStroke} strokeWidth="1.5" strokeDasharray="3 6" />
           {/* row divider */}
-          <line x1="78" y1="235" x2="222" y2="235" stroke="#333F5A" strokeWidth="1.5" strokeDasharray="3 6" />
+          <line x1="78" y1="235" x2="222" y2="235" stroke={T.carStroke} strokeWidth="1.5" strokeDasharray="3 6" />
 
           {/* headlights */}
-          <rect x="92" y="26" width="30" height="13" rx="6.5" fill="#FFC57A" />
-          <rect x="178" y="26" width="30" height="13" rx="6.5" fill="#FFC57A" />
+          <rect x="92" y="26" width="30" height="13" rx="6.5" fill="#FFE4A0" />
+          <rect x="178" y="26" width="30" height="13" rx="6.5" fill="#FFE4A0" />
           {/* taillights */}
-          <rect x="92" y="422" width="26" height="10" rx="5" fill="#E85C5C" />
-          <rect x="182" y="422" width="26" height="10" rx="5" fill="#E85C5C" />
+          <rect x="92" y="422" width="26" height="10" rx="5" fill="#F08080" />
+          <rect x="182" y="422" width="26" height="10" rx="5" fill="#F08080" />
         </svg>
 
         {/* ── Seat buttons ── */}
@@ -274,11 +280,11 @@ export function CarSeatMap({
         columnGap: 14,
         marginTop: 16,
       }}>
-        <LegendItem color={T.lane} label="В — водитель" />
-        <LegendItem color={T.ion} label="ПП — переднее" />
-        <LegendItem color={T.muted} label="ЗЛ — заднее слева" />
-        <LegendItem color={T.muted} label="ЗЦ — заднее центр" />
-        <LegendItem color={T.muted} label="ЗП — заднее справа" />
+        <LegendItem color={T.lane} code="B" name="водитель" />
+        <LegendItem color={T.ion} code="PP" name="переднее" />
+        <LegendItem color={T.muted} code="3Л" name="заднее слева" />
+        <LegendItem color={T.muted} code="3Ц" name="заднее центр" />
+        <LegendItem color={T.muted} code="3П" name="заднее справа" />
       </div>
 
       {/* ── Selection readout ── */}
@@ -322,7 +328,12 @@ export function CarSeatMap({
               color: T.paper,
             }}>
               {selectedSeats.length > 0
-                ? selectedSeats.map((id) => seats.find((s) => s.id === id)?.label).filter(Boolean).join(', ')
+                ? selectedSeats
+                    .map((id) => {
+                      const seat = seats.find((s) => s.id === id);
+                      return seat?.label ?? String(id);
+                    })
+                    .join(', ')
                 : 'не выбрано'}
             </span>
           </div>
@@ -332,7 +343,7 @@ export function CarSeatMap({
   );
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+function LegendItem({ color, code, name }: { color: string; code: string; name: string }) {
   return (
     <span style={{
       fontFamily: "'Rajdhani', sans-serif",
@@ -341,8 +352,8 @@ function LegendItem({ color, label }: { color: string; label: string }) {
       color: '#5C6883',
       letterSpacing: '0.03em',
     }}>
-      <b style={{ color }}>{label.split(' — ')[0]}</b>
-      {' — '}{label.split(' — ')[1]}
+      <b style={{ color }}>{code}</b>
+      {' \u2014 '}{name}
     </span>
   );
 }
