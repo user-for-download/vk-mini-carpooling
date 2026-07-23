@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import {
-  Panel as PanelType,
+  Panel,
   PanelHeader,
   PanelHeaderBack,
   Button,
@@ -20,7 +20,11 @@ import { useRideDetails } from '../../hooks/useRideDetails';
 import { useMyBookings } from '../../hooks/useMyBookings';
 import '../../styles.css';
 
-export function RideDetailsPanel(props: React.ComponentProps<typeof PanelType>) {
+interface Props {
+  nav: string;
+}
+
+export function RideDetailsPanel({ nav }: Props) {
   const routeNavigator = useRouteNavigator();
   const params = useParams<'id'>();
   const rideId = params?.id ? Number(params.id) : null;
@@ -145,7 +149,7 @@ export function RideDetailsPanel(props: React.ComponentProps<typeof PanelType>) 
   const currentBooking = ride ? getBookingForRide(ride.id) : undefined;
 
   return (
-    <PanelType {...props}>
+    <Panel nav={nav}>
       <PanelHeader
         before={
           <PanelHeaderBack
@@ -218,6 +222,6 @@ export function RideDetailsPanel(props: React.ComponentProps<typeof PanelType>) 
           />
         </Div>
       )}
-    </PanelType>
+    </Panel>
   );
 }

@@ -1,6 +1,6 @@
 import { useContext, useState, useRef, useCallback } from 'react';
 import {
-  Panel as PanelType,
+  Panel,
   PanelHeader,
   PanelHeaderBack,
   Select,
@@ -30,7 +30,11 @@ type View = 'search' | 'results';
 
 const STORAGE_KEY = 'passenger_search_state';
 
-export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
+interface Props {
+  nav: string;
+}
+
+export function PassengerPanel({ nav }: Props) {
   const routeNavigator = useRouteNavigator();
   const ctx = useContext(DataContext);
   const locations = ctx?.locations ?? [];
@@ -153,7 +157,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   );
 
   return (
-    <PanelType {...props}>
+    <Panel nav={nav}>
       <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
         Пассажир
       </PanelHeader>
@@ -414,6 +418,6 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
           )}
         </Div>
       )}
-    </PanelType>
+    </Panel>
   );
 }

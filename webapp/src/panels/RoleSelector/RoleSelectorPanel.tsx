@@ -1,12 +1,16 @@
-import { Panel as PanelType, PanelHeader, Title, Text, Button, Card, Div } from '@vkontakte/vkui';
+import { Panel, PanelHeader, Title, Text, Button, Card, Div } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import '../../styles.css';
 
-export function RoleSelector(props: React.ComponentProps<typeof PanelType>) {
+interface Props {
+  nav: string;
+}
+
+export function RoleSelector({ nav }: Props) {
   const routeNavigator = useRouteNavigator();
 
   return (
-    <PanelType {...props}>
+    <Panel nav={nav}>
       <PanelHeader>Local BlaBlaCar</PanelHeader>
 
       <Div style={{ textAlign: 'center', paddingTop: 0 }}>
@@ -101,6 +105,6 @@ export function RoleSelector(props: React.ComponentProps<typeof PanelType>) {
           </Div>
         </Card>
       </Div>
-    </PanelType>
+    </Panel>
   );
 }

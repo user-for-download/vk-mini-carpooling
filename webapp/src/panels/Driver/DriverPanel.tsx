@@ -1,6 +1,6 @@
 import { useContext, useState, type ReactElement } from 'react';
 import {
-  Panel as PanelType,
+  Panel,
   PanelHeader,
   PanelHeaderBack,
   Select,
@@ -33,7 +33,11 @@ import '../../styles.css';
 
 type View = 'list' | 'create' | 'detail';
 
-export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
+interface Props {
+  nav: string;
+}
+
+export function DriverPanel({ nav }: Props) {
   const routeNavigator = useRouteNavigator();
   const ctx = useContext(DataContext);
   const locations = ctx?.locations ?? [];
@@ -149,17 +153,17 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
   // If the initial API fetch fails, show the NetworkError placeholder
   if (initialLoadError && view === 'list') {
     return (
-      <PanelType {...props}>
+      <Panel nav={nav}>
         <PanelHeader before={<PanelHeaderBack onClick={() => routeNavigator.push('/')} />}>
           Водитель
         </PanelHeader>
         <NetworkError action={refetch} text={initialLoadError} />
-      </PanelType>
+      </Panel>
     );
   }
 
   return (
-    <PanelType {...props}>
+    <Panel nav={nav}>
       <PanelHeader before={<PanelHeaderBack onClick={() => view === 'list' ? routeNavigator.push('/') : setView('list')} />}>
         {view === 'detail' ? 'Детали поездки' : 'Водитель'}
       </PanelHeader>
@@ -386,6 +390,6 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
 
       {/* Snackbar for transient errors */}
       {snackbar}
-    </PanelType>
+    </Panel>
   );
 }
