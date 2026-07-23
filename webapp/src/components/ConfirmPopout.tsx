@@ -29,27 +29,27 @@ export function useConfirm() {
     }
 
     // Use VKUI Alert in VK Mini App
-    routeNavigator.showPopout(
-      <Alert
-        actions={[
-          {
-            title: confirmText,
-            mode: 'destructive',
-            action: () => {
-              onConfirm();
-              routeNavigator.hidePopout();
-            },
-          },
-          {
-            title: 'Отмена',
-            mode: 'cancel',
-          },
-        ]}
-        actionsLayout="horizontal"
-        onClose={() => routeNavigator.hidePopout()}
-        header={title}
-        text={text}
-      />
-    );
+    // routeNavigator.showPopout(
+    //   <Alert
+    //     actions={[
+    //       {
+    //         title: confirmText,
+    //         mode: 'destructive',
+    //         action: () => {
+    //           onConfirm();
+    //           routeNavigator.hidePopout();
+    //         },
+    //       },
+    //       {
+    //         title: 'Отмена',
+    //         mode: 'cancel',
+    //       },
+    //     ]}
+    //     actionsLayout="horizontal"
+    //     onClose={() => routeNavigator.hidePopout()}
+    //     header={title}
+    //     text={text}
+    //   />
+    // );
   };
 }
