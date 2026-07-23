@@ -43,19 +43,25 @@ This creates:
 - 40+ active rides
 - 70+ bookings (mixed PENDING/APPROVED/REJECTED)
 
-## Contracts Testing
+## Type Checking
 
 ```bash
-bun test packages/contracts
+# Check all workspaces
+bun run typecheck
+
+# Check individual packages
+cd packages/contracts && bunx tsc --noEmit
+cd backend && bunx tsc --noEmit
+cd webapp && bunx tsc --noEmit
 ```
 
-Test Zod schemas: `CreateRideSchema`, `CreateBookingSchema`, etc.
+All three packages should compile with 0 errors.
 
 ## Backend Testing
 
 ```bash
 docker compose up -d postgres
-bun run prisma:migrate
+cd backend && bunx prisma migrate dev
 bun test backend
 ```
 
@@ -99,7 +105,7 @@ agent-browser screenshot passenger.png
 ## Validation Rules to Test
 
 1. **Max bookings** — cannot exceed `MAX_BOOKING_COUNT` (default: 5)
-2. **Time conflict** — cannot book overlapping rides
+2. **Time conflict** — cannot book overlapping rides (2h buffer)
 3. **Seat limits** — cannot book more seats than available
 4. **Status transitions** — PENDING → APPROVED/REJECTED only
 5. **Cancellation** — only booking owner can cancel
@@ -108,18 +114,37 @@ agent-browser screenshot passenger.png
 ## API Endpoints
 
 ### Rides
-- `GET /api/rides` — search rides
+- `GET /api/rides` — search rides (validated with `SearchRidesSchema`)
 - `GET /api/rides/mine` — driver's rides
-- `GET /api/rides/:id` — ride details
-- `POST /api/rides` — create ride
+- `GET /api/rides/:id` — ride details (includes from, to, driver, bookings)
+- `POST /api/rides` — create ride (validated with `CreateRideSchema`)
 - `DELETE /api/rides/:id` — cancel ride
 
 ### Bookings
 - `GET /api/bookings/mine` — passenger's bookings
-- `POST /api/bookings` — create booking
-- `PATCH /api/bookings/:id/status` — approve/reject
+- `POST /api/bookings` — create booking (validated with `CreateBookingSchema`)
+- `PATCH /api/bookings/:id/status` — approve/reject (validated with `UpdateBookingStatusSchema`)
 - `DELETE /api/bookings/:id` — cancel booking
 
 ### Users
 - `GET /api/users/me` — get current user
-- `POST /api/users/init` — register/update user
+- `POST /api/users/init` — register/update user (validated with `InitUserSchema`)
+
+## Error Handling
+
+All routes return typed JSON errors:
+
+```json
+{ "error": "ERROR_CODE", "message": "Human-readable message" }
+```
+
+| Code | HTTP Status | Source |
+|------|-------------|--------|
+| `NOT_FOUND` | 404 | Ride/booking not found |
+| `FORBIDDEN` | 403 | Not the owner |
+| `NO_SEATS` | 409 | Not enough seats |
+| `MAX_BOOKINGS` | 409 | Exceeded booking limit |
+| `TIME_CONFLICT` | 409 | Overlapping ride |
+| `ALREADY_PROCESSED` | 409 | Booking already approved/rejected |
+| `NOT_ACTIVE` | 409 | Ride is not active |
+| `VALIDATION_ERROR` | 400 | Zod validation failed |

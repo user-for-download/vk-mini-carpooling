@@ -38,6 +38,28 @@ bun run dev:webapp    # http://localhost:5173
 | `VK_AUTH_MOCK_ENABLED` | `false` | Enable mock auth (dev only) |
 | `CORS_ORIGINS` | `vk.com,vk.ru` | Allowed CORS origins |
 
+## Prisma 7 Setup
+
+The project uses Prisma 7.9.0 with the `prisma-client` generator and `PrismaPg` driver adapter.
+
+### Key files
+- `backend/prisma/schema.prisma` — data model (no `url` in datasource block)
+- `backend/prisma.config.ts` — CLI config with datasource URL
+- `backend/generated/` — generated Prisma Client (import from here)
+- `backend/src/runtime.ts` — instantiates `PrismaClient` with `PrismaPg` adapter
+
+### Common commands
+```bash
+# Generate client after schema changes
+cd backend && bunx prisma generate
+
+# Create migration
+cd backend && bunx prisma migrate dev --name <name>
+
+# Apply migrations (prod)
+cd backend && bunx prisma migrate deploy
+```
+
 ## Production Deployment
 
 ### 1. Frontend: VK Static Hosting
@@ -58,7 +80,7 @@ The backend is a plain Bun/Hono process. Any Docker/Node-capable host works.
 bun run --cwd backend build
 
 # Run migrations
-bun run prisma:deploy
+cd backend && bunx prisma migrate deploy
 
 # Start (with NODE_ENV=production)
 NODE_ENV=production bun run --cwd backend start

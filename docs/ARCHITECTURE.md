@@ -5,11 +5,23 @@
 ```
 vk-mini-app/
 ├── packages/contracts/      Zod schemas + constants — single source of truth
-├── backend/                 Bun + Hono + Prisma API
-├── webapp/                  React + Vite + VKUI Mini App
+├── backend/
+│   ├── prisma/              Schema, migrations, seed scripts
+│   ├── prisma.config.ts     Prisma 7 CLI config (datasource URL)
+│   ├── generated/           Prisma Client (auto-generated, do not edit)
 │   └── src/
-│       ├── components/      Reusable UI components (CarSeatMap, TripCard)
-│       └── panels/          Screen panels (PassengerPanel, DriverPanel, etc.)
+│       ├── index.ts         Hono app entry, mounts routes, exports AppType
+│       ├── runtime.ts       Env parsing, Prisma client, CORS config
+│       ├── middleware/       vkAuth (HMAC), errorHandler (ZodError)
+│       ├── routes/          Thin route handlers with @hono/zod-validator
+│       └── services/        Business logic (rides, bookings, users, locations)
+├── webapp/
+│   └── src/
+│       ├── components/      Reusable UI (CarSeatMap, TripCard)
+│       ├── panels/          Screen panels (PassengerPanel, DriverPanel, etc.)
+│       ├── hooks/           Custom hooks (useLocations)
+│       ├── api/             Axios API client functions
+│       └── utils/           Shared utilities (formatRideDateTime, extractErrorMessage)
 ├── docker-compose.yml       local Postgres only
 └── docs/
 ```
@@ -30,8 +42,8 @@ vk-mini-app/
 4. **Cancel Ride** — cancel an active ride (restores seats)
 
 ### Validation Rules
-- **Max bookings per passenger** — configurable via `MAX_BOOKING_COUNT` env
-- **Time conflict prevention** — cannot book overlapping rides
+- **Max bookings per passenger** — configurable via `MAX_BOOKING_COUNT` env (shared constant in contracts)
+- **Time conflict prevention** — cannot book overlapping rides (2h buffer on each side)
 - **Seat validation** — cannot exceed available seats
 - **Booking cancellation** — passengers can cancel PENDING/APPROVED bookings
 - **Driver rejection** — drivers can reject PENDING/APPROVED bookings (restores seats)
@@ -39,21 +51,29 @@ vk-mini-app/
 ## Contracts Flow
 
 `packages/contracts` holds:
-- Zod schemas (`CreateRideSchema`, `RideDTOSchema`, etc.)
-- Status constants (`RIDE_STATUS`, `BOOKING_STATUS`)
+- Zod schemas (`CreateRideSchema`, `RideDTOSchema`, `BookingDTOSchema`, etc.)
+- Status constants (`RIDE_STATUS`, `BOOKING_STATUS`) — derived from Zod schemas
+- Shared constants (`MAX_BOOKING_COUNT`)
 
 Both `backend` and `webapp` import from `@local-blablacar/contracts` — one definition of truth.
+
+DTO schemas include optional relation fields (`from`, `to`, `driver`, `bookings`, `ride`) so the frontend gets typed responses from the API.
 
 ## Backend Request Flow
 
 ```
-route (thin) -> Zod validation -> vkAuthMiddleware -> service -> Prisma -> DTO
+route (thin, zValidator) -> vkAuthMiddleware -> service -> Prisma -> typed DTO
 ```
 
+### Middleware
+- `vkAuthMiddleware` — HMAC-SHA256 verification of VK launch params (or mock bypass)
+- `errorHandler` — catches ZodError → 400, generic errors → 500
+
 ### Services
-- `rides.service.ts` — CRUD for rides, search, cancel
-- `bookings.service.ts` — CRUD for bookings with seat management
+- `rides.service.ts` — CRUD for rides, search, cancel (throws `RideError`)
+- `bookings.service.ts` — CRUD for bookings with seat management (throws `BookingError`)
 - `users.service.ts` — user registration/init
+- `locations.service.ts` — list pickup points
 
 ### Auth Modes
 1. **Production** — HMAC-SHA256 verification of VK launch params
@@ -66,7 +86,7 @@ Top-down car schematic with 3 seats:
 - **В** (Водитель) — front seat
 - **Л** (Левый) — back-left seat
 - **П** (Правый) — back-right seat
-- Green = selected, Red = occupied, Grey = empty
+- Green = selected, Blue = available, Grey = occupied
 
 ### TripCard
 Combined trip information card:

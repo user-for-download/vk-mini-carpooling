@@ -20,9 +20,9 @@ A ride-sharing Mini App for VKontakte: drivers publish rides between local picku
 
 ## Stack
 
-- **`backend`** — Bun + Hono + Prisma + PostgreSQL, HMAC auth
+- **`backend`** — Bun + Hono + Prisma 7 + PostgreSQL, HMAC auth, `@hono/zod-validator`
 - **`webapp`** — React + Vite + VKUI + `vk-mini-apps-router`
-- **`packages/contracts`** — shared Zod schemas + constants
+- **`packages/contracts`** — shared Zod schemas + constants (single source of truth)
 
 ## Quick Start
 
