@@ -200,9 +200,11 @@ export async function updateBookingStatus(input: {
 export async function listMyBookings(passengerId: string) {
   return prisma.booking.findMany({
     where: { passengerId },
-    orderBy: { createdAt: 'desc' },
-    include: { ride: { include: { from: true, to: true } } },
-    take: 100, // Limit to prevent unbounded queries
+    orderBy: [
+      { status: 'asc' },
+      { createdAt: 'desc' },
+    ],
+    include: { ride: { include: { from: true, to: true, driver: true } } },
   });
 }
 

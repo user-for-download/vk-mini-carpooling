@@ -101,15 +101,15 @@ export async function getRideById(id: number) {
 export async function listMyRides(driverId: string) {
   return prisma.ride.findMany({
     where: { driverId },
-    orderBy: { departureTime: 'desc' },
+    orderBy: [
+      { status: 'asc' },
+      { departureTime: 'desc' },
+    ],
     include: {
       from: true,
       to: true,
-      // Only return pending and approved bookings (hide cancelled/rejected)
-      bookings: {
-        where: { status: { in: [BOOKING_STATUS.PENDING, BOOKING_STATUS.APPROVED] } },
-        include: { passenger: true },
-      },
+      driver: true,
+      bookings: { include: { passenger: true } },
     },
     take: 200,
   });
