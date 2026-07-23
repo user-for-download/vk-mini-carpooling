@@ -85,7 +85,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
     }
   }
 
-  async function handleDecision(bookingId: number, status: 'APPROVED' | 'REJECTED') {
+  async function handleDecision(bookingId: number, status: typeof BOOKING_STATUS.APPROVED | typeof BOOKING_STATUS.REJECTED) {
     setError(null); // Clear previous errors (L13)
     try {
       await updateBookingStatus(bookingId, { status });

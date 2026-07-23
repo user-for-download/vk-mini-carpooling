@@ -22,10 +22,10 @@ export const CreateRideSchema = z.object({
 });
 export type CreateRideInput = z.infer<typeof CreateRideSchema>;
 
-/** What the search form submits. */
+/** What the search form submits (query params are strings, so coerce). */
 export const SearchRidesSchema = z.object({
-  fromId: z.number().int().optional(),
-  toId: z.number().int().optional(),
+  fromId: z.coerce.number().int().optional(),
+  toId: z.coerce.number().int().optional(),
   date: z.string().date().optional(),
 });
 export type SearchRidesInput = z.infer<typeof SearchRidesSchema>;

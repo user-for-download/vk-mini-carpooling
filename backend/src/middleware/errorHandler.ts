@@ -24,6 +24,6 @@ export const errorHandler: ErrorHandler = (err, c) => {
     }
   }
 
-  console.error('[ERROR]', err instanceof Error ? err.message : err);
-  return c.json({ error: 'Internal server error' }, 500);
+  console.error('[ERROR]', err instanceof Error ? err.stack ?? err.message : err);
+  return c.json({ error: 'Internal server error', message: err instanceof Error ? err.message : String(err) }, 500);
 };

@@ -2,6 +2,7 @@ import { Text, Title, Div, Card, Button, FormItem, Textarea } from '@vkontakte/v
 import { CarSeatMap } from './CarSeatMap';
 import { formatRideDateTime, formatPrice } from '../utils/format';
 import { SEATS } from '../utils/constants';
+import { BOOKING_STATUS } from '@local-blablacar/contracts';
 
 interface Passenger {
   id: string;
@@ -56,11 +57,11 @@ export function TripCard({
   isBooked = false,
 }: TripCardProps) {
   const occupiedSeats = bookings
-    .filter((b) => b.status === 'APPROVED' || b.status === 'PENDING')
+    .filter((b) => b.status === BOOKING_STATUS.APPROVED || b.status === BOOKING_STATUS.PENDING)
     .flatMap((b) => (b.seatIds || []).map((seatId) => ({ seatId, booking: b })));
 
   const passengers: Passenger[] = bookings
-    .filter((b) => b.status === 'APPROVED' || b.status === 'PENDING')
+    .filter((b) => b.status === BOOKING_STATUS.APPROVED || b.status === BOOKING_STATUS.PENDING)
     .flatMap((b) =>
       (b.seatIds || []).map((seatId, idx) => ({
         id: `${b.passengerId}-${seatId}`,
