@@ -5,18 +5,28 @@ A ride-sharing Mini App for VKontakte: drivers publish rides between local picku
 ## Features
 
 ### Passenger
-- Search rides by From/To locations
+- Search rides by From/To locations with optional date filter
 - Visual seat selection (car seat map)
-- Book up to 5 active rides
-- View and cancel bookings
-- Time conflict prevention
+- Book up to 5 active rides (only future/upcoming)
+- Edit pending bookings (change seats/note)
+- Cancel bookings (soft-delete, history preserved)
+- Time conflict prevention (4-hour window)
+- Collapsible bookings list with history
 
 ### Driver
-- Create rides with location, time, price
-- Approve/reject booking requests
-- View all rides with status
-- Cancel active rides
-- See occupied seats on car diagram
+- Create rides with location, time, price, offered seats
+- Approve/reject booking requests with passenger names
+- View active trips as panel list, tap to see details
+- Cancel rides (cascades to bookings)
+- Driver time conflict prevention (4-hour window)
+- Driver seat automatically excluded from offered seats
+
+### Shared
+- Unified TripListItem component for consistent UI
+- VKUI theme adaptation (light/dark)
+- Mock auth mode for development
+- sessionStorage persistence for search state
+- Docker support for local development
 
 ## Stack
 
@@ -40,6 +50,7 @@ cp backend/.env.example backend/.env
 # Run migrations and seed
 bun run prisma:migrate
 bun run prisma:seed
+bun run prisma:seed:test
 
 # Start servers
 bun run dev:backend   # http://localhost:3000
@@ -58,6 +69,20 @@ Open in browser:
 - **Driver:** http://localhost:5173/?mock_user=driver#/driver
 
 See [`docs/TESTING.md`](docs/TESTING.md) for test data and user IDs.
+
+## Docker
+
+```bash
+# Start both backend and database
+docker compose up -d
+
+# Apply migrations
+docker compose exec backend bunx prisma migrate deploy
+
+# Seed data
+docker compose exec backend bun run prisma:seed
+docker compose exec backend bun run prisma:seed:test
+```
 
 ## Workspace Commands
 
@@ -85,6 +110,6 @@ See [`docs/TESTING.md`](docs/TESTING.md) for test data and user IDs.
 | `DATABASE_URL` | — | PostgreSQL connection string |
 | `VK_APP_SECRET` | — | VK app secret |
 | `PORT` | `3000` | Backend port |
-| `MAX_BOOKING_COUNT` | `5` | Max bookings per passenger |
+| `MAX_BOOKING_COUNT` | `5` | Max bookings per passenger (future rides only) |
 | `VK_AUTH_MOCK_ENABLED` | `false` | Mock auth (dev only) |
 | `CORS_ORIGINS` | `vk.com,vk.ru` | Allowed origins |
