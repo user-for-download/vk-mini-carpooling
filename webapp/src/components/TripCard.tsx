@@ -42,6 +42,7 @@ interface TripCardProps {
   onCancel?: () => void;
   mode?: 'driver' | 'passenger';
   isBooked?: boolean;
+  bookingStatus?: string;
 }
 
 export function TripCard({
@@ -55,13 +56,14 @@ export function TripCard({
   onCancel,
   mode = 'passenger',
   isBooked = false,
+  bookingStatus,
 }: TripCardProps) {
   const occupiedSeats = bookings
-    .filter((b) => b.status === BOOKING_STATUS.APPROVED || b.status === BOOKING_STATUS.PENDING)
+    .filter((b) => b.status === BOOKING_STATUS.APPROVED)
     .flatMap((b) => (b.seatIds || []).map((seatId) => ({ seatId, booking: b })));
 
   const passengers: Passenger[] = bookings
-    .filter((b) => b.status === BOOKING_STATUS.APPROVED || b.status === BOOKING_STATUS.PENDING)
+    .filter((b) => b.status === BOOKING_STATUS.APPROVED)
     .flatMap((b) =>
       (b.seatIds || []).map((seatId, idx) => ({
         id: `${b.passengerId}-${seatId}`,
@@ -164,9 +166,24 @@ export function TripCard({
         {mode === 'passenger' && (
           <div style={{ marginTop: 16 }}>
             {isBooked ? (
-              <Button size="l" stretched mode="secondary" onClick={onCancel}>
-                Отменить бронь
-              </Button>
+              <>
+                {bookingStatus === BOOKING_STATUS.PENDING && (
+                  <div style={{
+                    padding: 12,
+                    background: 'var(--vkui--color_background_secondary)',
+                    borderRadius: 8,
+                    marginBottom: 12,
+                    textAlign: 'center',
+                  }}>
+                    <Text style={{ color: 'var(--vkui--color_text_secondary)', fontSize: 13 }}>
+                      Ваша заявка ожидает подтверждения водителя
+                    </Text>
+                  </div>
+                )}
+                <Button size="l" stretched mode="secondary" onClick={onCancel}>
+                  Отменить бронь
+                </Button>
+              </>
             ) : (
               <>
                 <FormItem top="Комментарий для водителя (необязательно)" style={{ padding: 0, marginBottom: 16 }}>

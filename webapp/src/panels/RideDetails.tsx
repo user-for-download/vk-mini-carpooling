@@ -102,6 +102,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
   }
 
   const booked = ride ? isBooked(ride.id) : false;
+  const currentBooking = ride ? getBookingForRide(ride.id) : undefined;
 
   return (
     <PanelType {...props}>
@@ -146,6 +147,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
         <Div>
           <TripCard
             ride={ride}
+            bookings={ride.bookings}
             selectedSeats={selectedSeats}
             passengerNote={passengerNote}
             onPassengerNoteChange={setPassengerNote}
@@ -160,6 +162,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
             onCancel={handleCancel}
             mode="passenger"
             isBooked={booked}
+            bookingStatus={currentBooking?.status}
           />
         </Div>
       )}
