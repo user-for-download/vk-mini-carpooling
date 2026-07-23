@@ -40,15 +40,10 @@ export function SearchResults({ rides, fromId, toId, date, isBooked, onNewSearch
   return (
     <Div style={{ paddingBottom: 100 }}>
       {/* Search summary - plain text */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div>
-          <Text style={{ fontWeight: 600 }}>{fromName} → {toName}</Text>
-          <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>{dateLabel}</Text>
-        </div>
-        <Button size="s" mode="tertiary" onClick={onNewSearch}>Изменить</Button>
-      </div>
-
-      <Text style={{ color: 'var(--vkui-color-text-secondary)', marginBottom: 8 }}>
+      <Text style={{ color: 'var(--vkui-color-text-secondary)', marginBottom: 4 }}>
+        {fromName} → {toName} · {dateLabel}
+      </Text>
+      <Text style={{ color: 'var(--vkui-color-text-secondary)', marginBottom: 12 }}>
         Найдено: {rides.length} {rides.length === 1 ? 'поездка' : rides.length < 5 ? 'поездки' : 'поездок'}
       </Text>
 
