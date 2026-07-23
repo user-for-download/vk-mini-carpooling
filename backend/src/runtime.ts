@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { z } from 'zod';
 import { MAX_BOOKING_COUNT } from '@local-blablacar/contracts';
 
@@ -35,7 +36,7 @@ const configuredOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim());
 export const corsOrigins =
   process.env.NODE_ENV === 'production' ? configuredOrigins : [...configuredOrigins, ...DEV_ORIGINS];
 
-// One Prisma client for the whole process. Importing this instead of
-// `new PrismaClient()` per-file avoids exhausting Postgres connections
-// under Bun's hot-reload dev server.
-export const prisma = new PrismaClient();
+// One Prisma client for the whole process. Using PrismaPg adapter for
+// PostgreSQL connection pooling via the `pg` driver.
+const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
+export const prisma = new PrismaClient({ adapter });

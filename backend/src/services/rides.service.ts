@@ -2,6 +2,15 @@ import type { CreateRideInput, SearchRidesInput } from '@local-blablacar/contrac
 import { RIDE_STATUS } from '@local-blablacar/contracts';
 import { prisma } from '../runtime';
 
+export class RideError extends Error {
+  constructor(
+    public code: 'NOT_FOUND' | 'FORBIDDEN' | 'NOT_ACTIVE',
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 export async function searchRides(filters: SearchRidesInput) {
   return prisma.ride.findMany({
     where: {
@@ -50,9 +59,9 @@ export async function listMyRides(driverId: string) {
 
 export async function cancelRide(driverId: string, rideId: number) {
   const ride = await prisma.ride.findUnique({ where: { id: rideId } });
-  if (!ride) throw new Error('Ride not found');
-  if (ride.driverId !== driverId) throw new Error('Only the ride owner can cancel');
-  if (ride.status !== RIDE_STATUS.ACTIVE) throw new Error('Only active rides can be cancelled');
+  if (!ride) throw new RideError('NOT_FOUND', 'Ride not found');
+  if (ride.driverId !== driverId) throw new RideError('FORBIDDEN', 'Only the ride owner can cancel');
+  if (ride.status !== RIDE_STATUS.ACTIVE) throw new RideError('NOT_ACTIVE', 'Only active rides can be cancelled');
   return prisma.ride.update({
     where: { id: rideId },
     data: { status: RIDE_STATUS.CANCELLED },

@@ -19,12 +19,17 @@ function useVkAppearance(): AppearanceType {
   const [appearance, setAppearance] = useState<AppearanceType>('light');
 
   useEffect(() => {
-    const unsubscribe = bridge.subscribe((e) => {
+    // VKBridge's subscribe/unsubscribe types are incompatible with each other.
+    // The handler passed to subscribe expects (event) => void, but unsubscribe
+    // expects the same function back — and the overloaded signatures don't line up.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handler: Parameters<typeof bridge.subscribe>[0] = ((e: any) => {
       if (e.detail.type === 'VKWebAppUpdateConfig' && 'appearance' in e.detail.data) {
         setAppearance(e.detail.data.appearance as AppearanceType);
       }
-    });
-    return () => bridge.unsubscribe(unsubscribe);
+    }) as any;
+    const unsubscribe = bridge.subscribe(handler);
+    return () => bridge.unsubscribe(unsubscribe as any);
   }, []);
 
   return appearance;

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
 import { CreateBookingSchema, UpdateBookingStatusSchema } from '@local-blablacar/contracts';
 import { vkAuthMiddleware } from '../middleware/vkAuth';
 import { BookingError, cancelBooking, createBooking, listMyBookings, updateBookingStatus } from '../services/bookings.service';
@@ -27,17 +28,17 @@ bookingsRoutes.get('/mine', vkAuthMiddleware, async (c) => {
   return c.json(bookings);
 });
 
-bookingsRoutes.post('/', vkAuthMiddleware, async (c) => {
+bookingsRoutes.post('/', vkAuthMiddleware, zValidator('json', CreateBookingSchema), async (c) => {
   const passengerId = c.get('userId');
-  const body = CreateBookingSchema.parse(await c.req.json());
+  const body = c.req.valid('json');
   const booking = await createBooking(passengerId, body);
   return c.json(booking, 201);
 });
 
-bookingsRoutes.patch('/:id/status', vkAuthMiddleware, async (c) => {
+bookingsRoutes.patch('/:id/status', vkAuthMiddleware, zValidator('json', UpdateBookingStatusSchema), async (c) => {
   const driverId = c.get('userId');
   const bookingId = Number(c.req.param('id'));
-  const body = UpdateBookingStatusSchema.parse(await c.req.json());
+  const body = c.req.valid('json');
   const booking = await updateBookingStatus({ driverId, bookingId, status: body.status });
   return c.json(booking);
 });

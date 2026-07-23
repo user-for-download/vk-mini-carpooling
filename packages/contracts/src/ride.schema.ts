@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { LocationDTOSchema } from './location.schema';
+import { UserDTOSchema } from './user.schema';
+import { BookingDTOSchema } from './booking.schema';
 
 export const RideStatusSchema = z.enum(['ACTIVE', 'COMPLETED', 'CANCELLED']);
 export type RideStatus = z.infer<typeof RideStatusSchema>;
@@ -7,8 +10,6 @@ export type RideStatus = z.infer<typeof RideStatusSchema>;
 export const CreateRideSchema = z.object({
   fromId: z.number().int(),
   toId: z.number().int(),
-  // ISO 8601 string, always sent as UTC. Convert from <input type="datetime-local">
-  // using `new Date(localValue).toISOString()` on the client.
   departureTime: z.string().datetime(),
   seatsAvailable: z.number().int().min(1).max(8),
   price: z.number().int().min(0).max(1_000_000),
@@ -22,11 +23,11 @@ export type CreateRideInput = z.infer<typeof CreateRideSchema>;
 export const SearchRidesSchema = z.object({
   fromId: z.number().int().optional(),
   toId: z.number().int().optional(),
-  date: z.string().date().optional(), // YYYY-MM-DD
+  date: z.string().date().optional(),
 });
 export type SearchRidesInput = z.infer<typeof SearchRidesSchema>;
 
-/** What the API returns for a single ride. */
+/** What the API returns for a single ride (with relations). */
 export const RideDTOSchema = z.object({
   id: z.number().int(),
   driverId: z.string(),
@@ -37,5 +38,9 @@ export const RideDTOSchema = z.object({
   price: z.number().int(),
   status: RideStatusSchema,
   createdAt: z.string().datetime(),
+  from: LocationDTOSchema.optional(),
+  to: LocationDTOSchema.optional(),
+  driver: UserDTOSchema.optional(),
+  bookings: z.array(BookingDTOSchema).optional(),
 });
 export type RideDTO = z.infer<typeof RideDTOSchema>;

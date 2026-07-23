@@ -34,7 +34,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   const [loading, setLoading] = useState(false);
   const [bookingLoading, setBookingLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSeats, setSelectedSeats] = useState<{ [rideId: number]: number }>({});
+  const [selectedSeats, setSelectedSeats] = useState<Record<number, number[]>>({});
 
   useEffect(() => {
     listMyBookings().then(setMyBookings).catch(console.error);

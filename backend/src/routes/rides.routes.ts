@@ -1,16 +1,26 @@
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
 import { CreateRideSchema, SearchRidesSchema } from '@local-blablacar/contracts';
 import { vkAuthMiddleware } from '../middleware/vkAuth';
-import { cancelRide, createRide, getRideById, listMyRides, searchRides } from '../services/rides.service';
+import { RideError, cancelRide, createRide, getRideById, listMyRides, searchRides } from '../services/rides.service';
 
 export const ridesRoutes = new Hono();
 
-ridesRoutes.get('/', vkAuthMiddleware, async (c) => {
-  const query = SearchRidesSchema.parse({
-    fromId: c.req.query('fromId') ? Number(c.req.query('fromId')) : undefined,
-    toId: c.req.query('toId') ? Number(c.req.query('toId')) : undefined,
-    date: c.req.query('date') || undefined,
-  });
+const STATUS_BY_ERROR_CODE = {
+  NOT_FOUND: 404,
+  FORBIDDEN: 403,
+  NOT_ACTIVE: 409,
+} as const;
+
+ridesRoutes.onError((err, c) => {
+  if (err instanceof RideError) {
+    return c.json({ error: err.code, message: err.message }, STATUS_BY_ERROR_CODE[err.code]);
+  }
+  throw err;
+});
+
+ridesRoutes.get('/', vkAuthMiddleware, zValidator('query', SearchRidesSchema), async (c) => {
+  const query = c.req.valid('query');
   const rides = await searchRides(query);
   return c.json(rides);
 });
@@ -27,9 +37,9 @@ ridesRoutes.get('/:id', vkAuthMiddleware, async (c) => {
   return c.json(ride);
 });
 
-ridesRoutes.post('/', vkAuthMiddleware, async (c) => {
+ridesRoutes.post('/', vkAuthMiddleware, zValidator('json', CreateRideSchema), async (c) => {
   const driverId = c.get('userId');
-  const body = CreateRideSchema.parse(await c.req.json());
+  const body = c.req.valid('json');
   const ride = await createRide(driverId, body);
   return c.json(ride, 201);
 });

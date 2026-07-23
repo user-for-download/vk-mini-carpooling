@@ -178,7 +178,7 @@ export function DriverPanel(props: React.ComponentProps<typeof PanelType>) {
                       }}
                     >
                       <div>
-                        <Text style={{ fontWeight: 500 }}>Заявка: {booking.passenger?.firstName}</Text>
+                        <Text style={{ fontWeight: 500 }}>Заявка: {booking.passengerId}</Text>
                         <Text style={{ color: 'var(--vkui-color-text-secondary)', fontSize: 13 }}>
                           {booking.seatsBooked} мест
                         </Text>
