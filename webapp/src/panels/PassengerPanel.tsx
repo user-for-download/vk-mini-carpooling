@@ -103,7 +103,7 @@ export function PassengerPanel(props: React.ComponentProps<typeof PanelType>) {
   }
 
   function isBooked(rideId: number): boolean {
-    return myBookings.some((b) => b.rideId === rideId);
+    return myBookings.some((b) => b.rideId === rideId && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED));
   }
 
   async function handleCancelBooking(bookingId: number) {

@@ -35,13 +35,13 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
         }
       }
 
-      // 2. Prevent booking seats that are already APPROVED
-      const approvedBookings = await tx.booking.findMany({
-        where: { rideId: ride.id, status: BOOKING_STATUS.APPROVED },
+      // 2. Prevent booking seats that are already APPROVED or PENDING for another passenger
+      const blockingBookings = await tx.booking.findMany({
+        where: { rideId: ride.id, status: { in: [BOOKING_STATUS.APPROVED, BOOKING_STATUS.PENDING] } },
       });
-      const takenSeats = new Set(approvedBookings.flatMap((b) => b.seatIds));
+      const takenSeats = new Set(blockingBookings.flatMap((b) => b.seatIds));
       if (input.seatIds.some((id) => takenSeats.has(id))) {
-        throw new BookingError('NO_SEATS', 'One or more selected seats are already taken');
+        throw new BookingError('NO_SEATS', 'One or more selected seats are already taken or pending');
       }
 
       // 3. Check seats available
@@ -64,13 +64,10 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
       }
 
       // 5. Check for time conflict (overlapping rides)
-      const RIDE_DURATION_MS = 2 * 60 * 60 * 1000;
-      const CONFLICT_BUFFER_MS = 2 * 60 * 60 * 1000;
-
-      const rideStart = new Date(ride.departureTime);
-      const rideEnd = new Date(rideStart.getTime() + RIDE_DURATION_MS);
-      const conflictWindowStart = new Date(rideStart.getTime() - CONFLICT_BUFFER_MS);
-      const conflictWindowEnd = new Date(rideEnd.getTime() + CONFLICT_BUFFER_MS);
+      // Symmetrical 4-hour window (2h ride duration + 2h buffer)
+      const CONFLICT_WINDOW_MS = 4 * 60 * 60 * 1000;
+      const conflictWindowStart = new Date(ride.departureTime.getTime() - CONFLICT_WINDOW_MS);
+      const conflictWindowEnd = new Date(ride.departureTime.getTime() + CONFLICT_WINDOW_MS);
 
       const conflictingBooking = await tx.booking.findFirst({
         where: {
@@ -89,6 +86,27 @@ export async function createBooking(passengerId: string, input: CreateBookingInp
           'TIME_CONFLICT',
           `You already have a booking for a ride at a similar time (${conflictingBooking.ride.departureTime})`,
         );
+      }
+
+      // 6. Check if passenger already has a record (to avoid Prisma unique constraint crash)
+      const existingBooking = await tx.booking.findUnique({
+        where: { rideId_passengerId: { rideId: ride.id, passengerId } },
+      });
+
+      if (existingBooking) {
+        if (existingBooking.status === BOOKING_STATUS.PENDING || existingBooking.status === BOOKING_STATUS.APPROVED) {
+          throw new BookingError('ALREADY_PROCESSED', 'You already have an active booking for this ride');
+        }
+        // Reuse the cancelled/rejected booking record safely
+        return tx.booking.update({
+          where: { id: existingBooking.id },
+          data: {
+            status: BOOKING_STATUS.PENDING,
+            seatsBooked: input.seatIds.length,
+            seatIds: input.seatIds,
+            passengerNote: input.passengerNote || null,
+          }
+        });
       }
 
       return tx.booking.create({
@@ -137,7 +155,7 @@ export async function updateBookingStatus(input: {
           throw new BookingError('NO_SEATS', 'Not enough seats left');
         }
 
-        // Check specific seat collisions
+        // Check specific seat collisions for approvals
         const approvedBookings = await tx.booking.findMany({
           where: { rideId: booking.rideId, status: BOOKING_STATUS.APPROVED },
         });
@@ -244,13 +262,17 @@ export async function updateBooking(passengerId: string, bookingId: number, inpu
         }
       }
 
-      // Prevent booking seats already approved for another passenger
-      const approvedBookings = await tx.booking.findMany({
-        where: { rideId: ride.id, status: BOOKING_STATUS.APPROVED },
+      // Prevent booking seats already approved or pending for another passenger
+      const blockingBookings = await tx.booking.findMany({
+        where: {
+          rideId: ride.id,
+          status: { in: [BOOKING_STATUS.APPROVED, BOOKING_STATUS.PENDING] },
+          id: { not: bookingId }, // Exclude the current booking we are updating!
+        },
       });
-      const takenSeats = new Set(approvedBookings.flatMap((b) => b.seatIds));
+      const takenSeats = new Set(blockingBookings.flatMap((b) => b.seatIds));
       if (input.seatIds.some((id) => takenSeats.has(id))) {
-        throw new BookingError('NO_SEATS', 'One or more selected seats are already taken');
+        throw new BookingError('NO_SEATS', 'One or more selected seats are already taken or pending');
       }
 
       return tx.booking.update({

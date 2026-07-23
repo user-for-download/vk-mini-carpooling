@@ -11,6 +11,7 @@ import {
 } from '@vkontakte/vkui';
 import { useParams, useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import type { RideDTO, BookingDTO } from '@local-blablacar/contracts';
+import { BOOKING_STATUS } from '@local-blablacar/contracts';
 import { getRide } from '../api/rides';
 import { createBooking, cancelBooking as cancelBookingApi, listMyBookings, updateBooking as updateBookingApi } from '../api/bookings';
 import { TripCard } from '../components/TripCard';
@@ -57,11 +58,11 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
   }, [params?.id]);
 
   function isBooked(rideId: number): boolean {
-    return myBookings.some((b) => b.rideId === rideId);
+    return myBookings.some((b) => b.rideId === rideId && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED));
   }
 
   function getBookingForRide(rideId: number): BookingDTO | undefined {
-    return myBookings.find((b) => b.rideId === rideId);
+    return myBookings.find((b) => b.rideId === rideId && (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.APPROVED));
   }
 
   async function handleBook() {
@@ -180,6 +181,7 @@ export function RideDetails(props: React.ComponentProps<typeof PanelType>) {
           <TripCard
             ride={ride}
             bookings={ride.bookings}
+            excludeBookingId={currentBooking?.id}
             selectedSeats={selectedSeats}
             passengerNote={passengerNote}
             onPassengerNoteChange={setPassengerNote}

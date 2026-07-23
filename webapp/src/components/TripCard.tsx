@@ -35,6 +35,7 @@ interface TripCardProps {
     passenger?: { firstName: string; lastName: string };
   }>;
   selectedSeats?: number[];
+  excludeBookingId?: number;
   passengerNote?: string;
   onPassengerNoteChange?: (val: string) => void;
   onSelectSeat?: (seatId: number) => void;
@@ -52,6 +53,7 @@ export function TripCard({
   ride,
   bookings = [],
   selectedSeats = [],
+  excludeBookingId,
   passengerNote = '',
   onPassengerNoteChange,
   onSelectSeat,
@@ -64,10 +66,12 @@ export function TripCard({
   isEditing = false,
   onStartEdit,
 }: TripCardProps) {
+  // Show APPROVED or PENDING seats as occupied (unless it's the booking we are currently editing)
   const occupiedSeats = bookings
-    .filter((b) => b.status === BOOKING_STATUS.APPROVED)
+    .filter((b) => (b.status === BOOKING_STATUS.APPROVED || b.status === BOOKING_STATUS.PENDING) && b.id !== excludeBookingId)
     .flatMap((b) => (b.seatIds || []).map((seatId) => ({ seatId, booking: b })));
 
+  // The actual passenger list only displays completely APPROVED bookings
   const passengers: Passenger[] = bookings
     .filter((b) => b.status === BOOKING_STATUS.APPROVED)
     .flatMap((b) =>
